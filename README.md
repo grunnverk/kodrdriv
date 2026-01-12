@@ -14,6 +14,19 @@ Writing good commit messages and release notes is time-consuming and often done 
 
 KodrDriv reads your code changes and Git history to automatically generate contextual, meaningful documentation that reflects your actual work.
 
+## Requirements
+
+- **Node.js 24.0.0 or higher** - KodrDriv uses Vite 7+ which requires Node.js 24+
+- Git installed and configured
+- OpenAI API key (for AI-powered content generation)
+
+To check your Node.js version:
+```bash
+node --version
+```
+
+If you need to upgrade Node.js, visit [nodejs.org](https://nodejs.org/) or use a version manager like [nvm](https://github.com/nvm-sh/nvm).
+
 ## Installation
 
 ```bash
@@ -78,7 +91,12 @@ Set up your environment variables:
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
 export GITHUB_TOKEN="your-github-token"  # Required for publish command
+
+# If using a project-scoped API key (starts with sk-proj-):
+export OPENAI_PROJECT_ID="proj-your-project-id"
 ```
+
+**Note:** If your OpenAI API key starts with `sk-proj-`, you must also set `OPENAI_PROJECT_ID`. You can find your project ID in the [OpenAI dashboard](https://platform.openai.com/settings/organization/projects). Alternatively, create a legacy API key (starts with just `sk-`) to avoid needing the project ID.
 
 Initialize configuration files:
 ```bash
