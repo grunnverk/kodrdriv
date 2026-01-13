@@ -32,9 +32,13 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
-        # Force install to work around npm optional dependency bugs with rollup native bindings
-        # See: https://github.com/npm/cli/issues/4828
-        run: npm install --force
+        run: |
+          # Use public npm registry (package-lock.json is gitignored)
+          npm config set registry https://registry.npmjs.org/
+          # Clean install to ensure platform-specific optional deps (rollup native bindings) are resolved correctly
+          # See: https://github.com/npm/cli/issues/4828
+          rm -rf node_modules package-lock.json
+          npm install --include=optional
         timeout-minutes: 10
 
       - name: Build library
@@ -48,9 +52,10 @@ jobs:
         run: |
           # Change to docs directory and install dependencies
           cd docs
-          # Force install to work around npm optional dependency bugs with rollup native bindings
+          # Clean install to ensure platform-specific optional deps (rollup native bindings) are resolved correctly
           # See: https://github.com/npm/cli/issues/4828
-          npm install --force
+          rm -rf node_modules package-lock.json
+          npm install --include=optional
 
           # Copy README.md to public directory so it can be fetched
           cp ../README.md public/
