@@ -210,8 +210,18 @@ export const ConfigSchema = z.object({
     }).optional(),
     updates: z.object({
         scope: z.string().optional(),
+        scopes: z.array(z.string()).optional(), // Default scopes to check when no scope provided
         directories: z.array(z.string()).optional(),
         interProject: z.boolean().optional(),
+        report: z.boolean().optional(), // Generate dependency analysis report
+        analyze: z.boolean().optional(), // Run AI-powered dependency analysis
+        strategy: z.enum(['latest', 'conservative', 'compatible']).optional(), // Strategy for analyze
+    }).optional(),
+    pull: z.object({
+        remote: z.string().optional(), // Remote to pull from (default: 'origin')
+        branch: z.string().optional(), // Branch to pull (default: current branch)
+        autoStash: z.boolean().optional(), // Auto-stash local changes
+        autoResolve: z.boolean().optional(), // Auto-resolve common conflicts
     }).optional(),
     excludedPatterns: z.array(z.string()).optional(),
     traits: z.any().optional(), // Add traits property for cardigantime compatibility
@@ -467,8 +477,19 @@ export type VersionsConfig = {
 
 export type UpdatesConfig = {
     scope?: string; // npm scope to update (e.g., '@fjell', '@getdidthey')
+    scopes?: string[]; // Default scopes to check when no scope is provided
     directories?: string[]; // directories to scan for packages (tree mode)
     interProject?: boolean; // update inter-project dependencies based on tree state
+    report?: boolean; // Generate dependency analysis report instead of updating
+    analyze?: boolean; // Run AI-powered dependency analysis
+    strategy?: 'latest' | 'conservative' | 'compatible'; // Strategy for analyze mode
+}
+
+export type PullConfig = {
+    remote?: string; // Remote to pull from (default: 'origin')
+    branch?: string; // Branch to pull (default: current branch)
+    autoStash?: boolean; // Auto-stash local changes (default: true)
+    autoResolve?: boolean; // Auto-resolve common conflicts (default: true)
 }
 
 export type StopContextPattern = {

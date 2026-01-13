@@ -74,6 +74,7 @@ vi.mock('../src/constants', () => ({
     COMMAND_LINK: 'link',
     COMMAND_PUBLISH: 'publish',
     COMMAND_PUBLISH_TREE: 'publish-tree',
+    COMMAND_PULL: 'pull',
     COMMAND_RELEASE: 'release',
     COMMAND_REVIEW: 'review',
     COMMAND_SELECT_AUDIO: 'select-audio',

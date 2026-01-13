@@ -79,8 +79,16 @@ export const InputSchema = z.object({
     workingTagPrefix: z.string().optional(), // Tag prefix for working branch tags
     updateDeps: z.string().optional(), // Scope for inter-project dependency updates in publish command
     interProject: z.boolean().optional(), // Update inter-project dependencies in updates command
+    report: z.boolean().optional(), // Generate dependency analysis report in updates command
+    analyze: z.boolean().optional(), // Run AI-powered dependency analysis
+    strategy: z.enum(['latest', 'conservative', 'compatible']).optional(), // Strategy for analyze mode
     selfReflection: z.boolean().optional(), // Generate self-reflection report
     maxAgenticIterations: z.number().optional(), // Maximum iterations for AI analysis
+    // Pull command options
+    remote: z.string().optional(), // Remote to pull from
+    branch: z.string().optional(), // Branch to pull (overloads release.from and development.branch)
+    autoStash: z.boolean().optional(), // Auto-stash local changes
+    autoResolve: z.boolean().optional(), // Auto-resolve common conflicts
 });
 
 export type Input = z.infer<typeof InputSchema>;
@@ -406,11 +414,23 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
     }
 
     // Nested mappings for 'updates' options
-    if (commandName === 'updates' && (finalCliArgs.scope !== undefined || finalCliArgs.directories !== undefined || finalCliArgs.interProject !== undefined)) {
+    if (commandName === 'updates' && (finalCliArgs.scope !== undefined || finalCliArgs.directories !== undefined || finalCliArgs.interProject !== undefined || finalCliArgs.report !== undefined || finalCliArgs.analyze !== undefined || finalCliArgs.strategy !== undefined)) {
         transformedCliArgs.updates = {};
         if (finalCliArgs.scope !== undefined) transformedCliArgs.updates.scope = finalCliArgs.scope;
         if (finalCliArgs.directories !== undefined) transformedCliArgs.updates.directories = finalCliArgs.directories;
         if (finalCliArgs.interProject !== undefined) transformedCliArgs.updates.interProject = finalCliArgs.interProject;
+        if (finalCliArgs.report !== undefined) transformedCliArgs.updates.report = finalCliArgs.report;
+        if (finalCliArgs.analyze !== undefined) transformedCliArgs.updates.analyze = finalCliArgs.analyze;
+        if (finalCliArgs.strategy !== undefined) transformedCliArgs.updates.strategy = finalCliArgs.strategy;
+    }
+
+    // Nested mappings for 'pull' options
+    if (commandName === 'pull' && (finalCliArgs.remote !== undefined || finalCliArgs.branch !== undefined || finalCliArgs.autoStash !== undefined || finalCliArgs.autoResolve !== undefined)) {
+        transformedCliArgs.pull = {};
+        if (finalCliArgs.remote !== undefined) transformedCliArgs.pull.remote = finalCliArgs.remote;
+        if (finalCliArgs.branch !== undefined) transformedCliArgs.pull.branch = finalCliArgs.branch;
+        if (finalCliArgs.autoStash !== undefined) transformedCliArgs.pull.autoStash = finalCliArgs.autoStash;
+        if (finalCliArgs.autoResolve !== undefined) transformedCliArgs.pull.autoResolve = finalCliArgs.autoResolve;
     }
 
     // Handle excluded patterns (Commander.js converts --excluded-paths to excludedPaths)
@@ -1010,6 +1030,15 @@ Examples:
         .description('Remove the output directory and all generated files');
     addSharedOptions(cleanCommand);
 
+    const pullCommand = program
+        .command('pull')
+        .option('--remote <remote>', 'remote to pull from (default: origin)', 'origin')
+        .option('--branch <branch>', 'branch to pull (default: current branch)')
+        .option('--no-auto-stash', 'do not auto-stash local changes')
+        .option('--no-auto-resolve', 'do not auto-resolve common conflicts')
+        .description('Smart pull from remote with auto-conflict resolution for common files (package-lock.json, dist/, etc.)');
+    addSharedOptions(pullCommand);
+
     const precommitCommand = program
         .command('precommit')
         .description('Run precommit checks (lint -> build -> test) with optimization');
@@ -1036,6 +1065,9 @@ Examples:
         .command('updates [scope]')
         .option('--directories [directories...]', 'directories to scan for packages (tree mode, defaults to current directory)')
         .option('--inter-project', 'update inter-project dependencies based on tree state (requires --scope)')
+        .option('--report', 'generate a dependency analysis report instead of updating')
+        .option('--analyze', 'run AI-powered analysis on the dependency report to get upgrade recommendations')
+        .option('--strategy <strategy>', 'strategy for analyze mode: latest, conservative, or compatible', 'latest')
         .description('Update dependencies matching a specific scope using npm-check-updates (e.g., kodrdriv updates @fjell) or update inter-project dependencies (kodrdriv updates --inter-project @fjell)');
     addSharedOptions(updatesCommand);
 
