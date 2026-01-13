@@ -28,6 +28,8 @@ kodrdriv tree --cmd "npm install"
 # Execute built-in kodrdriv commands with configuration isolation
 kodrdriv tree commit
 kodrdriv tree publish
+kodrdriv tree pull
+kodrdriv tree updates
 kodrdriv tree link
 kodrdriv tree unlink
 kodrdriv tree development
@@ -903,6 +905,116 @@ kodrdriv clean
 # Clean with dry run to see what would be deleted
 kodrdriv clean --dry-run
 ```
+
+## Pull Command
+
+Smart pull from remote repositories with automatic conflict resolution:
+
+```bash
+kodrdriv pull
+kodrdriv tree pull
+```
+
+The `pull` command provides an intelligent alternative to `git pull` that automatically handles common merge conflicts, stashes local changes, and uses smart strategies to keep your branches synchronized.
+
+### What It Resolves Automatically
+
+| File Pattern | Resolution |
+|-------------|------------|
+| `package-lock.json` | Accept remote, regenerate with `npm install` |
+| `yarn.lock`, `pnpm-lock.yaml` | Accept remote, regenerate |
+| `package.json` (version only) | Take higher semver version |
+| `dist/**`, `coverage/**` | Accept remote (build artifacts) |
+| `*.js.map`, `*.d.ts` | Accept remote |
+
+### Pull Command Options
+
+- `--remote <remote>`: Remote to pull from (default: `origin`)
+- `--branch <branch>`: Branch to pull (default: current branch)
+- `--no-auto-stash`: Disable automatic stashing of local changes
+- `--no-auto-resolve`: Disable automatic conflict resolution
+
+### Examples
+
+```bash
+# Pull from origin/current-branch
+kodrdriv pull
+
+# Pull from upstream
+kodrdriv pull --remote upstream
+
+# Pull specific branch
+kodrdriv pull --branch main
+
+# Pull all packages in monorepo
+kodrdriv tree pull
+
+# Resume from specific package
+kodrdriv tree pull --start-from my-package
+```
+
+For detailed documentation, see [Pull Command](commands/pull.md).
+
+## Updates Command
+
+Update dependencies with scoped updates, dependency reports, and AI-powered analysis:
+
+```bash
+kodrdriv updates @eldrforge
+kodrdriv tree updates --report
+kodrdriv updates --analyze
+```
+
+The `updates` command provides powerful dependency management:
+- **Scoped Updates**: Update packages matching specific npm scopes
+- **Dependency Reports**: Comprehensive analysis of version conflicts
+- **AI Analysis**: Intelligent upgrade recommendations
+
+### Updates Command Options
+
+- `[scope]`: npm scope to update (e.g., `@eldrforge`)
+- `--directories [dirs...]`: Directories to scan (tree mode)
+- `--inter-project`: Sync inter-project dependency versions
+- `--report`: Generate dependency analysis report
+- `--analyze`: Run AI-powered upgrade recommendations
+- `--strategy <strategy>`: Strategy for `--analyze`:
+  - `latest` - Prefer newest versions (default)
+  - `conservative` - Prefer most common versions
+  - `compatible` - Prefer maximum compatibility
+
+### Examples
+
+```bash
+# Update @eldrforge packages
+kodrdriv updates @eldrforge
+
+# Use configured default scopes
+kodrdriv tree updates
+
+# Generate dependency report
+kodrdriv tree updates --report
+
+# AI-powered recommendations
+kodrdriv updates --analyze
+
+# Conservative upgrade strategy
+kodrdriv updates --analyze --strategy conservative
+
+# Sync inter-project versions
+kodrdriv tree updates --inter-project @eldrforge
+```
+
+### Configuration
+
+```yaml
+# .kodrdriv/config.yaml
+updates:
+  scopes:
+    - "@eldrforge"
+    - "@riotprompt"
+```
+
+For detailed documentation, see [Updates Command](commands/updates.md).
 
 ## Select Audio Command
 

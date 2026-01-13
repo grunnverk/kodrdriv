@@ -9,6 +9,8 @@ Built-in commands provide dependency-aware execution of core kodrdriv functional
 ```bash
 kodrdriv tree commit      # Run commit operations across packages
 kodrdriv tree publish     # Run publish operations across packages
+kodrdriv tree pull        # Smart pull with auto-conflict resolution across packages
+kodrdriv tree updates     # Update dependencies with reports and AI analysis
 kodrdriv tree link        # Link workspace packages across packages
 kodrdriv tree unlink      # Unlink workspace packages across packages
 kodrdriv tree development # Set up development environments across packages
@@ -110,6 +112,129 @@ Each package can have its own publish settings:
   }
 }
 ```
+
+### `kodrdriv tree pull`
+
+Smart pull from remote repositories across all packages with automatic conflict resolution.
+
+**What it does:**
+- Runs `kodrdriv pull` in each package directory
+- Automatically stashes uncommitted changes before pulling
+- Auto-resolves common conflicts (package-lock.json, version bumps, build artifacts)
+- Regenerates lock files after resolution
+- Restores stashed changes after pull
+
+**Usage:**
+```bash
+# Pull all packages from origin
+kodrdriv tree pull
+
+# Pull from upstream remote
+kodrdriv tree pull --remote upstream
+
+# Pull specific branch across all packages
+kodrdriv tree pull --branch main
+
+# Dry run to see what would happen
+kodrdriv tree pull --dry-run
+
+# Resume from a specific package
+kodrdriv tree pull --start-from my-package
+```
+
+**Auto-Resolved Conflicts:**
+| File Pattern | Resolution |
+|-------------|------------|
+| `package-lock.json` | Accept remote, regenerate with `npm install` |
+| `yarn.lock` | Accept remote, regenerate |
+| `package.json` (version only) | Take higher semver version |
+| `dist/**` | Accept remote (rebuild later) |
+| `*.js.map`, `*.d.ts` | Accept remote |
+
+**Configuration:**
+```json
+{
+  "pull": {
+    "remote": "origin",
+    "autoStash": true,
+    "autoResolve": true
+  }
+}
+```
+
+**Use Cases:**
+- **Morning sync**: Pull latest changes across all packages
+- **Pre-release**: Ensure all packages have latest remote changes
+- **Conflict resolution**: Avoid manual resolution of common lock file conflicts
+- **Team coordination**: Keep monorepo synchronized across developers
+
+For detailed pull documentation, see [Pull Command](pull.md).
+
+### `kodrdriv tree updates`
+
+Update dependencies across all packages with scoped updates, dependency reports, and AI analysis.
+
+**What it does:**
+- Runs `kodrdriv updates` in each package directory
+- Updates packages matching specific npm scopes
+- Generates comprehensive dependency reports
+- Provides AI-powered upgrade recommendations
+
+**Usage:**
+```bash
+# Update @eldrforge packages across all packages
+kodrdriv tree updates @eldrforge
+
+# Use configured default scopes
+kodrdriv tree updates
+
+# Generate dependency analysis report
+kodrdriv tree updates --report
+
+# AI-powered upgrade recommendations
+kodrdriv tree updates --analyze
+
+# Conservative upgrade strategy
+kodrdriv tree updates --analyze --strategy conservative
+
+# Sync inter-project dependencies
+kodrdriv tree updates --inter-project @eldrforge
+```
+
+**Key Features:**
+- **Scoped Updates**: Update only packages matching specific scopes (`@eldrforge/*`)
+- **Dependency Reports**: Comprehensive analysis of conflicts and shared dependencies
+- **AI Analysis**: Intelligent upgrade recommendations with version compatibility checking
+- **Inter-project Sync**: Keep internal package versions synchronized
+
+**Report Output:**
+```
+┌─ 🔴 VERSION CONFLICTS (3 packages)
+│
+│  ├─ openai
+│  │     ^4.87.3 (used by: core, commands-git)
+│  │     ^6.15.0 (used by: ai-service)
+```
+
+**AI Analysis Output:**
+```
+┌─ 💡 RECOMMENDATIONS
+│
+│  ├─ 🔴 openai
+│  │     Current: ^4.87.3, ^6.15.0
+│  │     Recommended: ^6.15.0
+│  │     Reason: Required by @riotprompt/riotprompt peer dependency
+```
+
+**Configuration:**
+```yaml
+updates:
+  scopes:
+    - "@eldrforge"
+    - "@riotprompt"
+```
+
+For detailed updates documentation, see [Updates Command](updates.md).
 
 ### `kodrdriv tree link`
 

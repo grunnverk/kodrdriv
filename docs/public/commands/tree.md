@@ -9,6 +9,8 @@ kodrdriv tree --cmd "npm install"
 # Execute built-in kodrdriv commands
 kodrdriv tree commit
 kodrdriv tree publish
+kodrdriv tree pull
+kodrdriv tree updates
 kodrdriv tree link
 kodrdriv tree unlink
 ```
@@ -39,7 +41,7 @@ kodrdriv tree link --exclude "test-*"
 kodrdriv tree unlink --dry-run
 ```
 
-**Supported Built-in Commands**: `commit`, `publish`, `link`, `unlink`, `development`, `branches`, `run`, `checkout`
+**Supported Built-in Commands**: `commit`, `publish`, `pull`, `updates`, `link`, `unlink`, `development`, `branches`, `run`, `checkout`
 
 > [!IMPORTANT]
 > ### Configuration Isolation in Built-in Command Mode
@@ -404,22 +406,31 @@ Use glob patterns to exclude packages:
 The tree command works well with other kodrdriv commands. With built-in command mode, you can now execute most workflow steps through tree:
 
 ```bash
-# 1. Install dependencies
+# 1. Pull latest changes across all packages
+kodrdriv tree pull
+
+# 2. Install dependencies
 kodrdriv tree --cmd "npm install"
 
-# 2. Link workspace packages for development
+# 3. Link workspace packages for development
 kodrdriv tree link
 
-# 3. Build all packages
+# 4. Build all packages
 kodrdriv tree --cmd "npm run build"
 
-# 4. Run tests
+# 5. Run tests
 kodrdriv tree --cmd "npm test"
 
-# 5. Commit changes across packages that need it
+# 6. Check for dependency updates
+kodrdriv tree updates --report
+
+# 7. Update external dependencies
+kodrdriv tree updates @riotprompt
+
+# 8. Commit changes across packages that need it
 kodrdriv tree commit
 
-# 6. Publish packages in dependency order
+# 9. Publish packages in dependency order
 kodrdriv tree publish
 ```
 
