@@ -38,7 +38,7 @@ jobs:
           # Clean install to ensure platform-specific optional deps (rollup native bindings) are resolved correctly
           # See: https://github.com/npm/cli/issues/4828
           rm -rf node_modules package-lock.json
-          npm install --include=optional
+          npm install --force
         timeout-minutes: 10
 
       - name: Build library
@@ -55,7 +55,7 @@ jobs:
           # Clean install to ensure platform-specific optional deps (rollup native bindings) are resolved correctly
           # See: https://github.com/npm/cli/issues/4828
           rm -rf node_modules package-lock.json
-          npm install --include=optional
+          npm install --force
 
           # Copy README.md to public directory so it can be fetched
           cp ../README.md public/
