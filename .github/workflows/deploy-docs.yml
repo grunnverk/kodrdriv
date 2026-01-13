@@ -29,10 +29,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
-        run: npm ci --verbose --foreground-scripts
+        run: |
+          # Use public npm registry (package-lock.json is gitignored)
+          npm config set registry https://registry.npmjs.org/
+          # Clean install to ensure platform-specific optional deps (rollup native bindings) are resolved correctly
+          # See: https://github.com/npm/cli/issues/4828
+          rm -rf node_modules package-lock.json
+          npm install --force
         timeout-minutes: 10
 
       - name: Build library
@@ -46,7 +52,10 @@ jobs:
         run: |
           # Change to docs directory and install dependencies
           cd docs
-          npm install --verbose --foreground-scripts
+          # Clean install to ensure platform-specific optional deps (rollup native bindings) are resolved correctly
+          # See: https://github.com/npm/cli/issues/4828
+          rm -rf node_modules package-lock.json
+          npm install --force
 
           # Copy README.md to public directory so it can be fetched
           cp ../README.md public/

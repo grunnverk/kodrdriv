@@ -22,7 +22,12 @@ npm install -g @eldrforge/kodrdriv
 ```bash
 export OPENAI_API_KEY="sk-your-openai-key-here"
 export GITHUB_TOKEN="ghp-your-github-token-here"  # Optional, for publish
+
+# If your API key starts with sk-proj-, you must also set:
+export OPENAI_PROJECT_ID="proj-your-project-id"
 ```
+
+**Important:** Project-scoped API keys (starting with `sk-proj-`) require the `OPENAI_PROJECT_ID` environment variable. You can find your project ID at https://platform.openai.com/settings/organization/projects
 
 Add to your shell profile (~/.zshrc, ~/.bashrc) to persist.
 
@@ -181,6 +186,24 @@ echo $OPENAI_API_KEY
 
 # Set it
 export OPENAI_API_KEY="your-key"
+
+# If using project-scoped key (sk-proj-*), also set:
+export OPENAI_PROJECT_ID="proj-your-project-id"
+```
+
+### "401 You do not have access to the project tied to the API key"
+
+This error occurs when using a project-scoped API key without setting `OPENAI_PROJECT_ID`:
+
+```bash
+# Check if your key is project-scoped
+echo $OPENAI_API_KEY | grep "sk-proj"
+
+# If it is, set the project ID:
+export OPENAI_PROJECT_ID="proj-your-project-id"
+
+# Find your project ID at:
+# https://platform.openai.com/settings/organization/projects
 ```
 
 ### "No changes to commit"

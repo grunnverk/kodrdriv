@@ -1,5 +1,10 @@
+// Load .env file if it exists, but NEVER override existing environment variables
+// This MUST be the first thing we do, before any other imports that might load dotenv
+// This ensures that shell-exported variables like OPENAI_API_KEY take precedence
+import { config as dotenvConfig } from 'dotenv';
+dotenvConfig({ override: false });
+
 import * as Cardigantime from '@theunwalked/cardigantime';
-import 'dotenv/config';
 import { setLogger as setGitLogger } from '@eldrforge/git-tools';
 import { setLogger as setGitHubLogger, setPromptFunction } from '@eldrforge/github-tools';
 import { promptConfirmation } from '@eldrforge/shared';
@@ -18,6 +23,27 @@ import { getLogger, setLogLevel } from './logging';
 import { Config, SecureConfig, ConfigSchema } from './types';
 
 /**
+ * Check Node.js version and exit with clear error message if version is too old.
+ */
+function checkNodeVersion(): void {
+    const requiredMajorVersion = 24;
+    const currentVersion = process.version;
+    const majorVersion = parseInt(currentVersion.slice(1).split('.')[0], 10);
+    
+    if (majorVersion < requiredMajorVersion) {
+        // eslint-disable-next-line no-console
+        console.error(`\n❌ ERROR: Node.js version ${requiredMajorVersion}.0.0 or higher is required.`);
+        // eslint-disable-next-line no-console
+        console.error(`   Current version: ${currentVersion}`);
+        // eslint-disable-next-line no-console
+        console.error(`   Please upgrade your Node.js version to continue.\n`);
+        // eslint-disable-next-line no-console
+        console.error(`   This project uses Vite 7+ which requires Node.js ${requiredMajorVersion}+.\n`);
+        process.exit(1);
+    }
+}
+
+/**
  * Print debug information about the command being executed when debug flag is enabled.
  */
 function printDebugCommandInfo(commandName: string, runConfig: Config): void {
@@ -26,6 +52,25 @@ function printDebugCommandInfo(commandName: string, runConfig: Config): void {
         logger.info('DEBUG_INFO_HEADER: KodrDriv debug information');
         logger.info('DEBUG_INFO_COMMAND: Command being executed | Command: %s', commandName);
         logger.info('DEBUG_INFO_VERSION: KodrDriv version | Version: %s', VERSION);
+        
+        // Log last 4 characters of tokens for debugging permissions issues
+        const openaiToken = process.env.OPENAI_API_KEY;
+        const githubToken = process.env.GITHUB_TOKEN;
+        
+        if (openaiToken) {
+            const tokenSuffix = openaiToken.slice(-4);
+            logger.info('DEBUG_INFO_TOKEN: OpenAI API Key | Suffix: ...%s', tokenSuffix);
+        } else {
+            logger.info('DEBUG_INFO_TOKEN: OpenAI API Key | Status: not set');
+        }
+        
+        if (githubToken) {
+            const tokenSuffix = githubToken.slice(-4);
+            logger.info('DEBUG_INFO_TOKEN: GitHub Token | Suffix: ...%s', tokenSuffix);
+        } else {
+            logger.info('DEBUG_INFO_TOKEN: GitHub Token | Status: not set');
+        }
+        
         logger.info('DEBUG_INFO_FOOTER: End of debug information');
     }
 }
@@ -51,6 +96,9 @@ export function configureEarlyLogging(): void {
 }
 
 export async function runApplication(): Promise<void> {
+    // Check Node.js version first, before doing anything else
+    checkNodeVersion();
+    
     // Configure logging early, before CardiganTime initialization
     configureEarlyLogging();
 
