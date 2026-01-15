@@ -353,7 +353,8 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
             cliArgs.statusParallel !== undefined || cliArgs.auditBranches !== undefined ||
             cliArgs.parallel !== undefined || cliArgs.markCompleted !== undefined ||
             cliArgs.skip !== undefined || cliArgs.retryFailed !== undefined ||
-            cliArgs.skipFailed !== undefined || cliArgs.validateState !== undefined) {
+            cliArgs.skipFailed !== undefined || cliArgs.validateState !== undefined ||
+            cliArgs.order !== undefined) {
 
             transformedCliArgs.tree = {};
             if (finalCliArgs.directories !== undefined) transformedCliArgs.tree.directories = finalCliArgs.directories;
@@ -393,6 +394,7 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
             if (cliArgs.retryFailed !== undefined) transformedCliArgs.tree.retryFailed = cliArgs.retryFailed;
             if (cliArgs.skipFailed !== undefined) transformedCliArgs.tree.skipFailed = cliArgs.skipFailed;
             if (cliArgs.validateState !== undefined) transformedCliArgs.tree.validateState = cliArgs.validateState;
+            if (cliArgs.order !== undefined) transformedCliArgs.tree.order = cliArgs.order;
         }
     }
 
@@ -858,6 +860,7 @@ export async function getCliConfig(
         .option('--retry-failed', 'retry all previously failed packages from checkpoint')
         .option('--skip-failed', 'skip failed packages and continue with remaining packages')
         .option('--validate-state', 'validate checkpoint state integrity before continuing')
+        .option('--order', 'show package execution order (topological sort based on dependencies)')
 
         // Package Filtering
         .option('--excluded-patterns [excludedPatterns...]', 'patterns to exclude packages from processing (e.g., "**/node_modules/**", "dist/*")')
@@ -897,7 +900,8 @@ Examples:
   kodrdriv tree --cmd "npm test"
   kodrdriv tree publish --continue --retry-failed
   kodrdriv tree publish --audit-branches
-  kodrdriv tree publish --status-parallel`);
+  kodrdriv tree publish --status-parallel
+  kodrdriv tree --order`);
     addSharedOptions(treeCommand);
 
     const linkCommand = program
