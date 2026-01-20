@@ -20,7 +20,7 @@ import { executeTool } from './tools.js';
 import { getResources, readResource } from './resources.js';
 import { getPrompts, getPrompt } from './prompts/index.js';
 import { getLogger } from '../logging.js';
-import { getLogger as getCoreLogger } from '@eldrforge/core';
+import { getLogger as getCoreLogger, setLogLevel as setCoreLogLevel } from '@eldrforge/core';
 import winston from 'winston';
 /* eslint-enable import/extensions */
 
@@ -82,6 +82,11 @@ async function main() {
     // before KODRDRIV_MCP_SERVER is set, so it will have console transports
     const coreLogger = getCoreLogger();
     removeConsoleTransports(coreLogger);
+
+    // Reconfigure core logger to ensure it uses MCP-safe transports
+    // This ensures winston doesn't output anything to stdout/stderr
+    // The logger was created before KODRDRIV_MCP_SERVER was set, so we need to reconfigure it
+    setCoreLogLevel('info'); // This will reconfigure with MCP-safe transports
 
     // Initialize MCP server with high-level API
     const server = new McpServer(
@@ -189,6 +194,22 @@ async function main() {
                     }
 
                     errorParts.push(result.error || 'Unknown error');
+
+                    // Include stderr/stdout details if available (critical for debugging CLI errors)
+                    if (result.details) {
+                        if (result.details.stderr && result.details.stderr.trim()) {
+                            errorParts.push('\n=== STDERR ===');
+                            errorParts.push(result.details.stderr);
+                        }
+                        if (result.details.stdout && result.details.stdout.trim()) {
+                            errorParts.push('\n=== STDOUT ===');
+                            errorParts.push(result.details.stdout);
+                        }
+                        if (result.details.exitCode !== undefined) {
+                            errorParts.push(`\n=== Exit Code ===`);
+                            errorParts.push(`${result.details.exitCode}`);
+                        }
+                    }
 
                     if (result.recovery && result.recovery.length > 0) {
                         errorParts.push('\n=== Recovery Steps ===');
@@ -336,6 +357,14 @@ async function main() {
             directory: z.string().optional(),
             packages: z.array(z.string()).optional(),
             start_from: z.string().optional(),
+        }
+    );
+
+    registerTool(
+        'kodrdriv_tree_link_status',
+        'Check link status across all packages in monorepo. Shows which packages have linked dependencies and where they point.',
+        {
+            directory: z.string().optional(),
         }
     );
 

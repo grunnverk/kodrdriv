@@ -79,6 +79,8 @@ export async function executeTool(
                 return await executeTreePrecommit(args, context);
             case 'kodrdriv_tree_link':
                 return await executeTreeLink(args, context);
+            case 'kodrdriv_tree_link_status':
+                return await executeTreeLinkStatus(args, context);
             case 'kodrdriv_tree_unlink':
                 return await executeTreeUnlink(args, context);
             case 'kodrdriv_tree_updates':
@@ -451,6 +453,21 @@ export const tools: McpTool[] = [
         },
     },
     {
+        name: 'kodrdriv_tree_link_status',
+        description:
+            'Check link status across all packages in monorepo. ' +
+            'Shows which packages have linked dependencies and where they point.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                directory: {
+                    type: 'string',
+                    description: 'Root directory of monorepo',
+                },
+            },
+        },
+    },
+    {
         name: 'kodrdriv_tree_unlink',
         description:
             'Remove workspace links and restore npm registry versions. ' +
@@ -633,7 +650,9 @@ function extractPackageProgress(logs: string[], totalPackages: number | null): {
     // Look for package execution patterns in logs
     // Pattern: "[N/TOTAL] package-name: Running command..." or "[N/TOTAL] package-name: ..."
     // Also handles emoji prefixes like "ℹ️ [1/13] package-name: ..."
-    const packagePattern = /(?:[^\s]+\s+)?\[(\d+)\/(\d+)\]\s+([^:]+):\s*(.+)/;
+    // The logCapture format is: "ℹ️ [1/13] package-name: message"
+    // Match emoji (any non-bracket chars) + space, then the bracket pattern
+    const packagePattern = /(?:[^[]+\s+)?\[(\d+)\/(\d+)\]\s+([^:]+):\s*(.+)/;
 
     // Also look for completion patterns
     const completionPattern = /(?:✅|✓|Success|completed|finished).*?\[(\d+)\/(\d+)\]/i;
@@ -652,19 +671,23 @@ function extractPackageProgress(logs: string[], totalPackages: number | null): {
             const packageName = packageMatch[3].trim();
             const action = packageMatch[4].trim();
 
-            // Use the most recent package we find
-            if (!currentPackage) {
-                currentPackage = packageName;
-                currentIndex = index;
-            }
+            // Skip "Discovery" messages for progress tracking (they're at index 0)
+            // But still use them to know we've started
+            if (packageName.toLowerCase() !== 'discovery') {
+                // Use the most recent package we find
+                if (!currentPackage) {
+                    currentPackage = packageName;
+                    currentIndex = index;
+                }
 
-            // Check if this looks like a completion
-            if (action.toLowerCase().includes('completed') ||
-                action.toLowerCase().includes('success') ||
-                action.toLowerCase().includes('finished') ||
-                log.includes('✅') ||
-                log.includes('✓')) {
-                completedCount = Math.max(completedCount, index);
+                // Check if this looks like a completion
+                if (action.toLowerCase().includes('completed') ||
+                    action.toLowerCase().includes('success') ||
+                    action.toLowerCase().includes('finished') ||
+                    log.includes('✅') ||
+                    log.includes('✓')) {
+                    completedCount = Math.max(completedCount, index);
+                }
             }
         }
 
@@ -720,6 +743,8 @@ async function executeCommand<T>(
     let lastLogCount = 0;
     let totalCount: number | null = null;
     let initialMessage = 'Starting command...';
+    let lastSentProgress: number | null = null;
+    let lastSentMessage: string | null = null;
 
     // Discover initial status for tree operations
     if (getInitialStatus) {
@@ -729,6 +754,11 @@ async function executeCommand<T>(
             if (initialStatus) {
                 totalCount = initialStatus.total;
                 initialMessage = initialStatus.message;
+                // Log the discovery message with progress context so it can be parsed
+                if (totalCount > 0) {
+                    const coreLogger = getCoreLogger();
+                    coreLogger.info(`[0/${totalCount}] Discovery: ${initialMessage}`);
+                }
             }
         } catch {
             // If discovery fails, continue with default behavior
@@ -749,6 +779,8 @@ async function executeCommand<T>(
         if (initialMessage) {
             initialParams.message = initialMessage;
         }
+        lastSentProgress = 0;
+        lastSentMessage = initialMessage;
         void context.sendNotification({
             method: 'notifications/progress',
             params: initialParams as any,
@@ -774,48 +806,64 @@ async function executeCommand<T>(
                         : (packageProgress.currentIndex ?? 0)
                 );
 
-                // Send progress notification (fire and forget - don't block execution)
-                // Build params object without undefined values to prevent JSON serialization issues
-                const progressParams: Record<string, any> = {
-                    progressToken: context.progressToken!,
-                    progress,
-                };
-                if (totalCount !== null && totalCount !== undefined) {
-                    progressParams.total = Math.floor(totalCount);
+                // Only send update if progress or message changed
+                const message = packageProgress.message || initialMessage;
+                if (progress !== lastSentProgress || message !== lastSentMessage) {
+                    lastSentProgress = progress;
+                    lastSentMessage = message;
+
+                    // Send progress notification (fire and forget - don't block execution)
+                    // Build params object without undefined values to prevent JSON serialization issues
+                    const progressParams: Record<string, any> = {
+                        progressToken: context.progressToken!,
+                        progress,
+                    };
+                    if (totalCount !== null && totalCount !== undefined) {
+                        progressParams.total = Math.floor(totalCount);
+                    }
+                    if (message) {
+                        progressParams.message = message;
+                    }
+                    void context.sendNotification!({
+                        method: 'notifications/progress',
+                        params: progressParams as any,
+                    }).catch(() => {
+                        // Ignore errors in progress notifications
+                    });
                 }
-                if (packageProgress.message) {
-                    progressParams.message = packageProgress.message;
-                }
-                void context.sendNotification!({
-                    method: 'notifications/progress',
-                    params: progressParams as any,
-                }).catch(() => {
-                    // Ignore errors in progress notifications
-                });
             } else if (totalCount !== null) {
                 // Even if no new logs, send periodic heartbeat with current status
-                // This prevents the UI from showing stale "Starting command..." for too long
-                const heartbeatParams: Record<string, any> = {
-                    progressToken: context.progressToken!,
-                    progress: 0,
-                    total: Math.floor(totalCount),
-                };
-                if (initialMessage) {
-                    heartbeatParams.message = initialMessage;
+                // But only if we haven't sent this exact message recently
+                const heartbeatMessage = initialMessage;
+                if (heartbeatMessage !== lastSentMessage || 0 !== lastSentProgress) {
+                    lastSentProgress = 0;
+                    lastSentMessage = heartbeatMessage;
+                    const heartbeatParams: Record<string, any> = {
+                        progressToken: context.progressToken!,
+                        progress: 0,
+                        total: Math.floor(totalCount),
+                    };
+                    if (heartbeatMessage) {
+                        heartbeatParams.message = heartbeatMessage;
+                    }
+                    void context.sendNotification!({
+                        method: 'notifications/progress',
+                        params: heartbeatParams as any,
+                    }).catch(() => {
+                        // Ignore errors in progress notifications
+                    });
                 }
-                void context.sendNotification!({
-                    method: 'notifications/progress',
-                    params: heartbeatParams as any,
-                }).catch(() => {
-                    // Ignore errors in progress notifications
-                });
             }
         }, 2000); // Poll every 2 seconds
     } else if (context.progressCallback) {
         // Fallback to progress callback if sendNotification isn't available
+        let lastCallbackProgress: number | null = null;
+        let lastCallbackMessage: string | null = null;
         void Promise.resolve(context.progressCallback(0, totalCount ?? null, initialMessage, [])).catch(() => {
             // Ignore errors in progress callback
         });
+        lastCallbackProgress = 0;
+        lastCallbackMessage = initialMessage;
 
         // Poll logs every 2 seconds to send progress updates
         progressInterval = setInterval(() => {
@@ -835,24 +883,37 @@ async function executeCommand<T>(
                         : (packageProgress.currentIndex ?? 0)
                 );
 
-                // Call progress callback (fire and forget - don't block execution)
-                void Promise.resolve(
-                    context.progressCallback!(
-                        progress,
-                        totalCount !== null ? Math.floor(totalCount) : null,
-                        packageProgress.message,
-                        newLogs.length > 0 ? newLogs : undefined
-                    )
-                ).catch(() => {
-                    // Ignore errors in progress callback
-                });
+                // Only call callback if progress or message changed
+                const message = packageProgress.message || initialMessage;
+                if (progress !== lastCallbackProgress || message !== lastCallbackMessage) {
+                    lastCallbackProgress = progress;
+                    lastCallbackMessage = message;
+
+                    // Call progress callback (fire and forget - don't block execution)
+                    void Promise.resolve(
+                        context.progressCallback!(
+                            progress,
+                            totalCount !== null ? Math.floor(totalCount) : null,
+                            message,
+                            newLogs.length > 0 ? newLogs : undefined
+                        )
+                    ).catch(() => {
+                        // Ignore errors in progress callback
+                    });
+                }
             } else if (totalCount !== null) {
                 // Even if no new logs, send periodic heartbeat with current status
-                void Promise.resolve(
-                    context.progressCallback!(0, Math.floor(totalCount), initialMessage, undefined)
-                ).catch(() => {
-                    // Ignore errors in progress callback
-                });
+                // But only if we haven't sent this exact message recently
+                const heartbeatMessage = initialMessage;
+                if (heartbeatMessage !== lastCallbackMessage || 0 !== lastCallbackProgress) {
+                    lastCallbackProgress = 0;
+                    lastCallbackMessage = heartbeatMessage;
+                    void Promise.resolve(
+                        context.progressCallback!(0, Math.floor(totalCount), heartbeatMessage, undefined)
+                    ).catch(() => {
+                        // Ignore errors in progress callback
+                    });
+                }
             }
         }, 2000); // Poll every 2 seconds
     }
@@ -1368,6 +1429,25 @@ async function executeTreeLink(args: any, context: ToolExecutionContext): Promis
             }
             return null;
         }
+    );
+}
+
+async function executeTreeLinkStatus(args: any, context: ToolExecutionContext): Promise<ToolResult> {
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.tree(config),
+        (config, _args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            config.tree.builtInCommand = 'link';
+            config.tree.packageArgument = 'status';
+        },
+        (result, args, originalCwd) => ({
+            status: result,
+            directory: args.directory || originalCwd,
+        })
     );
 }
 

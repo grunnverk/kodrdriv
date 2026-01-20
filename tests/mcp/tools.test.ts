@@ -41,8 +41,8 @@ describe('MCP Tools', () => {
     });
 
     describe('tools array', () => {
-        it('should have 15 tools defined', () => {
-            expect(tools).toHaveLength(15);
+        it('should have 16 tools defined', () => {
+            expect(tools).toHaveLength(16);
         });
 
         it('should have all core tools', () => {
