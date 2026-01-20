@@ -586,7 +586,7 @@ async function executeCommand<T>(
             success: true,
             data,
             message: args.dry_run ? 'Dry run completed' : 'Command completed successfully',
-            logs: logs.length > 0 ? logs : undefined,
+            logs: logs.length > 0 ? logs : ['ℹ️ Command executed successfully (no logs captured)'],
         };
     } catch (error: any) {
         // Restore directory on error
@@ -605,6 +605,11 @@ async function executeCommand<T>(
         const formatted = formatErrorForMCP(error);
         const commandDetails = extractCommandErrorDetails(error);
 
+        // Always include logs, even if empty, so user can see what happened
+        const allLogs = logs.length > 0 
+            ? logs 
+            : ['ℹ️ Command started but no logs were captured before failure'];
+
         return {
             success: false,
             error: formatted.message,
@@ -617,7 +622,7 @@ async function executeCommand<T>(
                 phase: commandDetails.phase,
                 files: commandDetails.files,
             },
-            logs: logs.length > 0 ? logs : undefined,
+            logs: allLogs,
         };
     }
 }
