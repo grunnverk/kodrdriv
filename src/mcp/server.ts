@@ -24,6 +24,8 @@ import {
 import { tools, executeTool } from './tools.js';
 import { getResources, readResource } from './resources.js';
 import { getPrompts, getPrompt } from './prompts/index.js';
+import { getLogger } from '../logging.js';
+import winston from 'winston';
 /* eslint-enable import/extensions */
 
 /**
@@ -42,6 +44,16 @@ function withErrorLogging<T>(
 }
 
 async function main() {
+    // Disable console logging in MCP server mode to prevent stdout/stderr pollution
+    // Console output interferes with MCP protocol messages over stdio
+    const logger = getLogger();
+    const transports = (logger as any).transports || [];
+    for (const transport of transports) {
+        if (transport instanceof winston.transports.Console) {
+            logger.remove(transport);
+        }
+    }
+
     // Initialize MCP server with full capabilities
     const server = new Server(
         {

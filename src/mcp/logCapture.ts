@@ -19,6 +19,9 @@ export interface CapturedLog {
 /**
  * Create a log capturing transport and install it on the global logger
  * Returns functions to retrieve logs and remove the transport
+ * 
+ * IMPORTANT: When running as MCP server, temporarily removes console transports
+ * to prevent log output from interfering with MCP protocol messages over stdio
  */
 export function installLogCapture(): {
     getLogs: () => string[];
@@ -26,6 +29,19 @@ export function installLogCapture(): {
     } {
     const capturedLogs: CapturedLog[] = [];
     const logger = getLogger();
+
+    // Store console transports to restore later
+    const consoleTransports: winston.transport[] = [];
+    
+    // Remove console transports to prevent stdout/stderr pollution in MCP server
+    // This prevents log messages from being interpreted as MCP protocol messages
+    const transports = (logger as any).transports || [];
+    for (const transport of transports) {
+        if (transport instanceof winston.transports.Console) {
+            consoleTransports.push(transport);
+            logger.remove(transport);
+        }
+    }
 
     // Create a writable stream that captures log messages
     const captureStream = new Writable({
@@ -79,6 +95,11 @@ export function installLogCapture(): {
         remove: () => {
             // Remove our transport from the logger
             logger.remove(memoryTransport);
+            
+            // Restore console transports if they were removed
+            for (const transport of consoleTransports) {
+                logger.add(transport);
+            }
         },
     };
 }

@@ -606,8 +606,8 @@ async function executeCommand<T>(
         const commandDetails = extractCommandErrorDetails(error);
 
         // Always include logs, even if empty, so user can see what happened
-        const allLogs = logs.length > 0 
-            ? logs 
+        const allLogs = logs.length > 0
+            ? logs
             : ['ℹ️ Command started but no logs were captured before failure'];
 
         return {
