@@ -64,7 +64,7 @@ export function getPrompts(): McpPrompt[] {
     return [
         {
             name: 'fix_and_commit',
-            description: 'Run precommit checks, fix issues, and commit changes',
+            description: 'Run precommit checks, fix issues, and commit changes for a single package',
             arguments: [
                 {
                     name: 'directory',
@@ -74,8 +74,19 @@ export function getPrompts(): McpPrompt[] {
             ],
         },
         {
-            name: 'full_publish',
-            description: 'Guided monorepo publishing workflow',
+            name: 'tree_fix_and_commit',
+            description: 'Run precommit checks, fix issues, and commit changes across a monorepo tree',
+            arguments: [
+                {
+                    name: 'directory',
+                    description: 'Monorepo root directory',
+                    required: false,
+                },
+            ],
+        },
+        {
+            name: 'tree_publish',
+            description: 'Guided monorepo tree publishing workflow',
             arguments: [
                 {
                     name: 'packages',
@@ -83,6 +94,11 @@ export function getPrompts(): McpPrompt[] {
                     required: false,
                 },
             ],
+        },
+        {
+            name: 'publish',
+            description: 'Guided single-package publishing workflow',
+            arguments: [],
         },
         {
             name: 'dependency_update',
@@ -122,7 +138,8 @@ export async function getPrompt(
     // Set default values for common arguments if missing
     const filledArgs = { ...args };
     if (name === 'fix_and_commit' && !filledArgs.directory) filledArgs.directory = 'current directory';
-    if (name === 'full_publish' && !filledArgs.packages) filledArgs.packages = 'all packages with changes';
+    if (name === 'tree_fix_and_commit' && !filledArgs.directory) filledArgs.directory = 'current directory';
+    if (name === 'tree_publish' && !filledArgs.packages) filledArgs.packages = 'all packages with changes';
     if (name === 'check_development' && !filledArgs.directory) filledArgs.directory = 'current directory';
 
     const content = fillTemplate(template, filledArgs);

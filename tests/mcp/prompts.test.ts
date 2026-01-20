@@ -6,14 +6,16 @@ describe('MCP Prompts', () => {
         it('should return array of prompts', () => {
             const prompts = getPrompts();
             expect(Array.isArray(prompts)).toBe(true);
-            expect(prompts).toHaveLength(4);
+            expect(prompts).toHaveLength(6);
         });
 
         it('should have all expected prompts', () => {
             const prompts = getPrompts();
             const expectedPrompts = [
                 'fix_and_commit',
-                'full_publish',
+                'tree_fix_and_commit',
+                'tree_publish',
+                'publish',
                 'dependency_update',
                 'check_development',
             ];
@@ -44,10 +46,22 @@ describe('MCP Prompts', () => {
             expect(messages[0].content.type).toBe('text');
         });
 
-        it('should return messages for full_publish', async () => {
-            const messages = await getPrompt('full_publish', {});
+        it('should return messages for tree_fix_and_commit', async () => {
+            const messages = await getPrompt('tree_fix_and_commit', {});
             expect(Array.isArray(messages)).toBe(true);
             expect(messages[0].content.text).toContain('monorepo');
+        });
+
+        it('should return messages for tree_publish', async () => {
+            const messages = await getPrompt('tree_publish', {});
+            expect(Array.isArray(messages)).toBe(true);
+            expect(messages[0].content.text).toContain('monorepo');
+        });
+
+        it('should return messages for publish', async () => {
+            const messages = await getPrompt('publish', {});
+            expect(Array.isArray(messages)).toBe(true);
+            expect(messages[0].content.text).toContain('single package');
         });
 
         it('should throw on unknown prompt', async () => {
@@ -56,7 +70,7 @@ describe('MCP Prompts', () => {
         });
 
         it('should use provided arguments', async () => {
-            const messages = await getPrompt('full_publish', { packages: 'package-a,package-b' });
+            const messages = await getPrompt('tree_publish', { packages: 'package-a,package-b' });
             expect(messages[0].content.text).toContain('package-a,package-b');
         });
     });
