@@ -1,4 +1,7 @@
 {
   "name": "@myorg/tools", 
-  "version": "2.1.0"
+  "version": "2.1.0",
+  "scripts": {
+    "precommit": "echo 'No precommit checks for this package'"
+  }
 }
