@@ -84,7 +84,7 @@ async function readStatusResource(uri: KodrdrivUri): Promise<StatusResource> {
     };
 }
 
-async function readWorkspaceResource(uri: KodrdrivUri): Promise<WorkspaceResource> {
+async function readWorkspaceResource(_uri: KodrdrivUri): Promise<WorkspaceResource> {
     // TODO: Integrate with workspace detection
     return {
         root: process.cwd(),
@@ -116,7 +116,7 @@ async function readPackageResource(uri: KodrdrivUri): Promise<any> {
 
 async function readRecentCommitsResource(uri: KodrdrivUri): Promise<any> {
     // TODO: Integrate with git log
-    const _count = uri.query?.count ? parseInt(uri.query.count, 10) : 10;
+    // const count = uri.query?.count ? parseInt(uri.query.count, 10) : 10;
     return {
         repository: uri.path || process.cwd(),
         branch: 'main',
