@@ -129,6 +129,7 @@ export const ConfigSchema = z.object({
         updateDeps: z.string().optional(),
         agenticPublish: z.boolean().optional(),
         agenticPublishMaxIterations: z.number().optional(),
+        skipLinkCleanup: z.boolean().optional(),
     }).optional(),
     branches: z.record(z.string(), z.object({
         targetBranch: z.string().optional(),

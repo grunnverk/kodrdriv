@@ -33,6 +33,7 @@ export const InputSchema = z.object({
     targetVersion: z.string().optional(),
     skipAlreadyPublished: z.boolean().optional(),
     forceRepublish: z.boolean().optional(),
+    skipLinkCleanup: z.boolean().optional(),
     excludedPatterns: z.array(z.string()).optional(),
     excludedPaths: z.array(z.string()).optional(),
     exclude: z.array(z.string()).optional(), // Alias for excludedPatterns
@@ -173,6 +174,7 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
         if (finalCliArgs.syncTarget !== undefined) transformedCliArgs.publish.syncTarget = finalCliArgs.syncTarget;
         if (finalCliArgs.skipAlreadyPublished !== undefined) transformedCliArgs.publish.skipAlreadyPublished = finalCliArgs.skipAlreadyPublished;
         if (finalCliArgs.forceRepublish !== undefined) transformedCliArgs.publish.forceRepublish = finalCliArgs.forceRepublish;
+        if (finalCliArgs.skipLinkCleanup !== undefined) transformedCliArgs.publish.skipLinkCleanup = finalCliArgs.skipLinkCleanup;
         if ((commandName === 'publish' || finalCliArgs.mergeMethod !== undefined || finalCliArgs.targetVersion !== undefined || finalCliArgs.syncTarget !== undefined || finalCliArgs.interactive !== undefined || finalCliArgs.skipAlreadyPublished !== undefined || finalCliArgs.forceRepublish !== undefined) && finalCliArgs.noMilestones !== undefined) transformedCliArgs.publish.noMilestones = finalCliArgs.noMilestones;
         if (finalCliArgs.updateDeps !== undefined) transformedCliArgs.publish.updateDeps = finalCliArgs.updateDeps;
 

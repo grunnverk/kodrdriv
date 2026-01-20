@@ -63,10 +63,7 @@ export default defineConfig({
     build: {
         target: 'esnext',
         outDir: 'dist',
-        lib: {
-            entry: './src/main.ts',
-            formats: ['es'],
-        },
+        ssr: true,
         rollupOptions: {
             external: [
                 // Command packages
@@ -83,6 +80,8 @@ export default defineConfig({
                 '@eldrforge/tree-core',
                 '@eldrforge/tree-execution',
                 '@eldrforge/audio-tools',
+                // MCP dependencies
+                '@modelcontextprotocol/sdk',
                 // External dependencies
                 '@theunwalked/dreadcabinet',
                 '@theunwalked/cardigantime',
@@ -91,10 +90,12 @@ export default defineConfig({
                 '@riotprompt/riotprompt/formatter',
                 '@riotprompt/riotprompt/chat'
             ],
-            input: 'src/main.ts',
+            input: ['src/main.ts', 'src/mcp/server.ts'],
             output: {
+                dir: 'dist',
                 format: 'esm',
                 entryFileNames: '[name].js',
+                chunkFileNames: '[name].js',
                 preserveModules: true,
                 preserveModulesRoot: 'src',
                 exports: 'named',

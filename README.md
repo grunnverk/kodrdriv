@@ -1,3 +1,10 @@
+# KodrDriv - AI-Powered Git Workflow Automation
+
+[![MCP Integration](https://img.shields.io/badge/MCP-Enabled-blue)](https://modelcontextprotocol.io)
+[![13 MCP Tools](https://img.shields.io/badge/MCP_Tools-13-brightgreen)]()
+[![8 Resources](https://img.shields.io/badge/MCP_Resources-8-brightgreen)]()
+[![6 Prompts](https://img.shields.io/badge/MCP_Prompts-6-brightgreen)]()
+
 # KodrDriv
 
 KodrDriv is an AI-powered Git workflow automation tool that generates intelligent commit messages and release notes from your code changes. It analyzes your repository to create meaningful documentation while automating the entire release process.
@@ -32,6 +39,37 @@ If you need to upgrade Node.js, visit [nodejs.org](https://nodejs.org/) or use a
 ```bash
 npm install -g @eldrforge/kodrdriv
 ```
+
+## 🤖 MCP Integration (NEW!)
+
+KodrDriv now supports the **Model Context Protocol (MCP)**, enabling AI assistants like Cursor to directly invoke commands without shell execution!
+
+### Features
+- **13 MCP Tools**: All kodrdriv commands available via MCP
+- **8 Resources**: Access configs, status, workspace data via `kodrdriv://` URIs  
+- **6 Workflow Prompts**: Guided multi-step operations
+
+### Quick Setup for Cursor
+
+Add to `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "kodrdriv": {
+      "command": "kodrdriv-mcp"
+    }
+  }
+}
+```
+
+Then simply ask: *"Use kodrdriv to commit my changes"*
+
+### Documentation
+- **[Quick Start](docs/mcp-quick-start.md)** - Get started in 5 minutes
+- **[Integration Guide](MCP_INTEGRATION.md)** - Complete MCP documentation
+- **[Tools Reference](docs/mcp-tools-reference.md)** - All 13 tools
+- **[Resources Reference](docs/mcp-resources-reference.md)** - All 8 resources
+- **[Prompts Reference](docs/mcp-prompts-reference.md)** - All 6 workflows
 
 
 ## Quick Start
@@ -175,3 +213,5 @@ Apache-2.0 - see [LICENSE](LICENSE) file for details.
 ## About the Name
 
 Like Thor's hammer, this tool smashes through your repetitive coding tasks. But unlike Mjölnir, it won't make you worthy — it'll just make you faster. Strike through commits, forge releases, and channel the lightning of AI to automate your workflow. Because sometimes you need a hammer, and sometimes you need a tool that actually works. Pirate.
+
+<!-- Build: 2026-01-15 15:59:12 UTC -->
