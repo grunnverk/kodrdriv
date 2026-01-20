@@ -90,6 +90,14 @@ export interface KodrdrivUri {
 }
 
 /**
+ * Progress notification callback
+ * Called periodically during long-running operations to send progress updates
+ */
+export interface ProgressCallback {
+    (progress: number, total: number | null, message: string, logs?: string[]): void;
+}
+
+/**
  * Tool Execution Context
  * Provides context for tool execution
  */
@@ -97,6 +105,7 @@ export interface ToolExecutionContext {
     workingDirectory: string;
     config?: any; // KodrDriv config
     logger: any; // Logger instance
+    progressCallback?: ProgressCallback; // Optional progress callback for long-running operations
 }
 
 /**

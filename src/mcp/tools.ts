@@ -553,6 +553,42 @@ async function executeCommand<T>(
     // Install log capturing transport on the global logger
     const { getLogs, remove } = installLogCapture();
 
+    // Set up progress polling if callback is provided
+    let progressInterval: NodeJS.Timeout | null = null;
+    let lastLogCount = 0;
+    let progressCounter = 0;
+
+    if (context.progressCallback) {
+        // Send initial progress
+        context.progressCallback(0, null, 'Starting command...', []);
+
+        // Poll logs every 2 seconds to send progress updates
+        progressInterval = setInterval(() => {
+            const logs = getLogs();
+            const newLogs = logs.slice(lastLogCount);
+            lastLogCount = logs.length;
+
+            if (newLogs.length > 0 || logs.length > 0) {
+                progressCounter += newLogs.length;
+                const latestMessage = newLogs.length > 0
+                    ? newLogs[newLogs.length - 1]
+                    : logs.length > 0
+                        ? logs[logs.length - 1]
+                        : 'Processing...';
+
+                // Extract a clean message (remove emoji prefixes)
+                const cleanMessage = latestMessage.replace(/^[^\s]+\s/, '').trim() || 'Processing...';
+
+                context.progressCallback!(
+                    progressCounter,
+                    null,
+                    cleanMessage,
+                    newLogs.length > 0 ? newLogs : undefined
+                );
+            }
+        }, 2000); // Poll every 2 seconds
+    }
+
     try {
         // Change to target directory if specified
         if (args.directory) {
@@ -570,6 +606,12 @@ async function executeCommand<T>(
         // Execute the command
         const result = await commandFn(config);
 
+        // Stop progress polling
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+
         // Restore original directory
         if (args.directory) {
             process.chdir(originalCwd);
@@ -578,6 +620,14 @@ async function executeCommand<T>(
         // Get captured logs and remove transport
         const logs = getLogs();
         remove();
+
+        // Send final progress update
+        if (context.progressCallback) {
+            const finalMessage = logs.length > 0
+                ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
+                : 'Command completed successfully';
+            context.progressCallback(logs.length, logs.length, finalMessage, logs);
+        }
 
         // Build the result
         const data = resultBuilder ? resultBuilder(result, args, originalCwd) : { result, directory: args.directory || originalCwd };
@@ -589,6 +639,12 @@ async function executeCommand<T>(
             logs: logs.length > 0 ? logs : ['ℹ️ Command executed successfully (no logs captured)'],
         };
     } catch (error: any) {
+        // Stop progress polling on error
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+
         // Restore directory on error
         if (args.directory && process.cwd() !== originalCwd) {
             try {
@@ -601,6 +657,16 @@ async function executeCommand<T>(
         // Get captured logs and remove transport
         const logs = getLogs();
         remove();
+
+        // Send error progress update
+        if (context.progressCallback) {
+            context.progressCallback(
+                logs.length,
+                null,
+                `Error: ${error.message || 'Command failed'}`,
+                logs.length > 0 ? logs : undefined
+            );
+        }
 
         const formatted = formatErrorForMCP(error);
         const commandDetails = extractCommandErrorDetails(error);

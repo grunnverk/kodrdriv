@@ -19,7 +19,7 @@ export interface CapturedLog {
 /**
  * Create a log capturing transport and install it on the global logger
  * Returns functions to retrieve logs and remove the transport
- * 
+ *
  * IMPORTANT: When running as MCP server, temporarily removes console transports
  * to prevent log output from interfering with MCP protocol messages over stdio
  */
@@ -32,7 +32,7 @@ export function installLogCapture(): {
 
     // Store console transports to restore later
     const consoleTransports: winston.transport[] = [];
-    
+
     // Remove console transports to prevent stdout/stderr pollution in MCP server
     // This prevents log messages from being interpreted as MCP protocol messages
     const transports = (logger as any).transports || [];
@@ -47,25 +47,25 @@ export function installLogCapture(): {
     const captureStream = new Writable({
         write(chunk: any, _encoding: string, callback: (error?: Error | null) => void) {
             const message = chunk.toString();
-            
+
             // Clean up the message - remove ANSI color codes and extra formatting
             // eslint-disable-next-line no-control-regex
             const cleanMessage = message.replace(/\x1B\[[0-9;]*[mG]/g, '').replace(/^(info|warn|error|debug|verbose):\s*/i, '').trim();
-            
+
             // Detect level from message or default to info
             let level = 'info';
             if (message.includes('error:')) level = 'error';
             else if (message.includes('warn:')) level = 'warn';
             else if (message.includes('debug:')) level = 'debug';
             else if (message.includes('verbose:')) level = 'verbose';
-            
+
             if (cleanMessage) {
                 capturedLogs.push({
                     level,
                     message: cleanMessage,
                 });
             }
-            
+
             callback();
         },
     });
@@ -89,13 +89,13 @@ export function installLogCapture(): {
                 debug: '🔍',
                 verbose: '📝',
             }[log.level] || '  ';
-            
+
             return `${emoji} ${log.message}`;
         }),
         remove: () => {
             // Remove our transport from the logger
             logger.remove(memoryTransport);
-            
+
             // Restore console transports if they were removed
             for (const transport of consoleTransports) {
                 logger.add(transport);

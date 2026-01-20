@@ -78,6 +78,9 @@ async function main() {
         }
     );
 
+    // Store transport reference for sending notifications
+    let transport: StdioServerTransport | null = null;
+
     // ========================================================================
     // Tools Handlers
     // ========================================================================
@@ -101,6 +104,35 @@ async function main() {
                 config: undefined,
                 logger: undefined,
             };
+
+            // Extract progressToken from request metadata if present
+            const progressToken = (request.params as any)?._meta?.progressToken;
+            let progressCallback: ((progress: number, total: number | null, message: string, logs?: string[]) => void) | undefined;
+
+            // Set up progress callback if progressToken is provided
+            if (progressToken && transport) {
+                progressCallback = async (progress: number, total: number | null, message: string, logs?: string[]) => {
+                    try {
+                        // Send progress notification via transport
+                        // The MCP SDK requires sending notifications through the transport
+                        if (transport) {
+                            await (transport as any).sendNotification?.({
+                                method: 'notifications/progress',
+                                params: {
+                                    progressToken,
+                                    progress,
+                                    total: total ?? undefined,
+                                    message: message || 'Processing...',
+                                },
+                            });
+                        }
+                    } catch (error) {
+                        // Silently fail progress notifications - don't break the main operation
+                        // Progress notifications are optional and shouldn't break the tool execution
+                    }
+                };
+                context.progressCallback = progressCallback;
+            }
 
             const result = await executeTool(
                 request.params.name,
@@ -216,7 +248,7 @@ async function main() {
     // Start Server
     // ========================================================================
 
-    const transport = new StdioServerTransport();
+    transport = new StdioServerTransport();
     await server.connect(transport);
 
     // eslint-disable-next-line no-console
