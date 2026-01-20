@@ -108,6 +108,24 @@ export interface ToolResult {
     data?: any;
     error?: string;
     message?: string;
+    // Enhanced error context for MCP
+    context?: Record<string, any>;
+    recovery?: string[];
+    details?: {
+        stdout?: string;
+        stderr?: string;
+        exitCode?: number;
+        files?: string[];
+        phase?: string;
+    };
+    // Progress reporting for long-running operations
+    progress?: {
+        current: number;
+        total: number;
+        currentStep: string;
+        completedSteps: string[];
+        remainingPackages?: string[];
+    };
 }
 
 // ============================================================================
