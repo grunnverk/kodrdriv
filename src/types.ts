@@ -63,6 +63,9 @@ export const ConfigSchema = z.object({
         maxAgenticIterations: z.number().optional(),
         selfReflection: z.boolean().optional(),
     }).optional(),
+    precommit: z.object({
+        fix: z.boolean().optional(),
+    }).optional(),
     review: z.object({
         includeCommitHistory: z.boolean().optional(),
         includeRecentDiffs: z.boolean().optional(),
@@ -168,6 +171,7 @@ export const ConfigSchema = z.object({
         packageArgument: z.string().optional(),
         cleanNodeModules: z.boolean().optional(),
         externals: z.array(z.string()).optional(),
+        fix: z.boolean().optional(),
         // Parallel execution options
         parallel: z.boolean().optional(),
         maxConcurrency: z.number().optional(),

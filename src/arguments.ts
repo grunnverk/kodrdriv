@@ -90,6 +90,8 @@ export const InputSchema = z.object({
     branch: z.string().optional(), // Branch to pull (overloads release.from and development.branch)
     autoStash: z.boolean().optional(), // Auto-stash local changes
     autoResolve: z.boolean().optional(), // Auto-resolve common conflicts
+    // Precommit command options
+    fix: z.boolean().optional(), // Attempt to auto-fix linting issues
 });
 
 export type Input = z.infer<typeof InputSchema>;
@@ -274,6 +276,12 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
         if (finalCliArgs.keepTemp !== undefined) transformedCliArgs.audioReview.keepTemp = finalCliArgs.keepTemp;
         if (finalCliArgs.openaiReasoning !== undefined) transformedCliArgs.audioReview.openaiReasoning = finalCliArgs.openaiReasoning;
         if (finalCliArgs.openaiMaxOutputTokens !== undefined) transformedCliArgs.audioReview.openaiMaxOutputTokens = finalCliArgs.openaiMaxOutputTokens;
+    }
+
+    // Nested mappings for 'precommit' options
+    if (finalCliArgs.fix !== undefined) {
+        transformedCliArgs.precommit = {};
+        transformedCliArgs.precommit.fix = finalCliArgs.fix;
     }
 
     // Nested mappings for 'review' options
@@ -1048,6 +1056,7 @@ Examples:
 
     const precommitCommand = program
         .command('precommit')
+        .option('--fix', 'Attempt to auto-fix linting issues before running precommit checks')
         .description('Run precommit checks (lint -> build -> test) with optimization');
     addSharedOptions(precommitCommand);
 
@@ -1284,6 +1293,9 @@ Examples:
         } else if (commandName === 'clean' && chosen?.cleanCommand?.opts) {
             const cleanCmd = chosen.cleanCommand;
             commandOptions = cleanCmd.opts();
+        } else if (commandName === 'precommit' && chosen?.precommitCommand?.opts) {
+            const precommitCmd = chosen.precommitCommand;
+            commandOptions = precommitCmd.opts();
         } else if (commandName === 'development' && chosen?.developmentCommand?.opts) {
             const developmentCmd = chosen.developmentCommand;
             commandOptions = developmentCmd.opts();
