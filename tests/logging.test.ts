@@ -8,6 +8,8 @@ describe('Logging module', () => {
     beforeEach(() => {
         // Clear mock calls before each test
         vi.clearAllMocks();
+        // Clear KODRDRIV_MCP_SERVER to ensure tests run in non-MCP mode
+        delete process.env.KODRDRIV_MCP_SERVER;
     });
 
     afterEach(() => {
