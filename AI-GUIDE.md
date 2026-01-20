@@ -16,6 +16,9 @@
 
 ## For AI Assistants: Start Here
 
+### If using kodrdriv via MCP:
+→ You can call kodrdriv tools directly! See [`MCP_INTEGRATION.md`](MCP_INTEGRATION.md) for all 13 available tools
+
 ### If helping someone integrate kodrdriv:
 → Start with [`guide/integration.md`](guide/integration.md)
 
@@ -806,6 +809,35 @@ cd ../kodrdriv && npm run build
 - **CardiganTime**: https://github.com/theunwalked/cardigantime
 - **OpenAI API**: https://platform.openai.com/docs
 - **GitHub API**: https://docs.github.com/en/rest
+
+---
+
+## Error Recovery
+
+### Tree Operations: Never Switch to Single-Package Mode
+
+**WRONG**: Tree publish fails → switch to single-package publish
+**RIGHT**: Tree publish fails → fix issue → resume with `--continue`
+
+```typescript
+// ❌ WRONG: Loses inter-project dependency tracking
+await kodrdriv_tree_publish({...})  // Fails on package D
+await kodrdriv_publish({directory: "packages/package-d"})
+
+// ✅ CORRECT: Maintains tree context
+await kodrdriv_tree_publish({...})  // Fails on package D, saves checkpoint
+// Fix issue
+await kodrdriv_tree_publish({continue: true})  // Resumes from D
+```
+
+### Error Context
+
+All errors include: message, context (operation/phase/files), recovery steps, and full stdout/stderr/exitCode in `details`.
+
+### Flags
+
+- `continue: true` - Resume from checkpoint
+- `cleanup: true` - Remove checkpoint and start fresh
 
 ---
 

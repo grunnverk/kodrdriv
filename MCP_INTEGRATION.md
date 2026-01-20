@@ -1,15 +1,16 @@
 # KodrDriv MCP Integration
 
-KodrDriv is now fully integrated with the Model Context Protocol (MCP), enabling AI assistants like Cursor to directly invoke kodrdriv commands without shell execution.
+KodrDriv is fully integrated with the Model Context Protocol (MCP), enabling AI assistants like Cursor to directly invoke kodrdriv commands without shell execution. All 14 tools are fully implemented and tested.
 
 ## 🎯 Features
 
-### Tools (13 Total)
+### Tools (14 Total)
 
-**Core Git Operations (6)**
+**Core Git Operations (7)**
 - `kodrdriv_commit` - Generate intelligent commit messages
 - `kodrdriv_release` - Generate comprehensive release notes
-- `kodrdriv_publish` - Automated package publishing workflow
+- `kodrdriv_publish` - Automated package publishing workflow with post-publish development workflow
+- `kodrdriv_development` - Manage transition to working branch and bump development version
 - `kodrdriv_precommit` - Run comprehensive precommit checks
 - `kodrdriv_review` - Analyze review notes and create GitHub issues
 - `kodrdriv_pull` - Smart git pull with conflict resolution
@@ -45,6 +46,51 @@ Guided workflow templates:
 - `smart_merge` - Handle merge conflicts intelligently
 - `issue_from_review` - Create GitHub issues from review notes
 
+## 🔧 Error Handling & Recovery
+
+### Structured Errors
+
+All errors include detailed context, recovery steps, and full command output:
+
+```json
+{
+  "success": false,
+  "error": "Tree publish failed in @org/package-d",
+  "context": {
+    "failedPackages": ["@org/package-d"],
+    "completedPackages": ["@org/pkg-a", "@org/pkg-b"]
+  },
+  "recovery": [
+    "Fix the issue in: @org/package-d",
+    "Resume with: kodrdriv_tree_publish({continue: true})"
+  ],
+  "details": {
+    "stdout": "npm ERR! ...",
+    "stderr": "...",
+    "exitCode": 1
+  }
+}
+```
+
+### Resume from Checkpoint
+
+Tree operations support `--continue` to resume after fixing issues:
+
+```typescript
+// Initial attempt fails
+kodrdriv_tree_publish({directory: "/path", version_type: "patch"})
+
+// Fix issue, then resume
+kodrdriv_tree_publish({directory: "/path", continue: true})
+// Skips completed packages, continues from failure point
+```
+
+### Validation & Progress
+
+- **Pre-flight validation**: All issues reported before execution starts
+- **Progress updates**: Current package, completed/remaining, percentage
+- **Cleanup flag**: Remove checkpoint and start fresh with `cleanup: true`
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -75,6 +121,32 @@ npm run mcp:inspect
 ```
 
 ## 📖 Usage Examples
+
+### Branch-Based Version Management
+
+KodrDriv implements a branch-based versioning workflow where:
+
+**`working` branch**: Always has development versions (e.g., `0.10.1-dev.0`)
+**`main` branch**: Always has release versions (e.g., `0.10.0`)
+
+#### Publishing Flow (working → main)
+
+1. On `working` branch with `0.10.1-dev.0`
+2. Run `kodrdriv_publish` with `version_type: 'patch'`
+   - Merges working → main
+   - Strips `-dev.0` suffix → `0.10.1`
+   - Creates GitHub release
+   - Publishes to npm
+   - **Automatically runs `kodrdriv_development`** (unless `run_development: false`)
+3. Returns to `working` branch
+   - Tags with `working/v0.10.1`
+   - Bumps to `0.10.2-dev.0`
+   - Commits and pushes
+
+In Cursor, simply ask:
+> "Use kodrdriv to publish a patch release"
+
+The AI will handle the entire workflow automatically, including the post-publish development setup.
 
 ### Commit with AI-Generated Message
 

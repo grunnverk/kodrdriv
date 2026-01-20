@@ -1,7 +1,7 @@
 # KodrDriv - AI-Powered Git Workflow Automation
 
 [![MCP Integration](https://img.shields.io/badge/MCP-Enabled-blue)](https://modelcontextprotocol.io)
-[![13 MCP Tools](https://img.shields.io/badge/MCP_Tools-13-brightgreen)]()
+[![14 MCP Tools](https://img.shields.io/badge/MCP_Tools-14-brightgreen)]()
 [![8 Resources](https://img.shields.io/badge/MCP_Resources-8-brightgreen)]()
 [![6 Prompts](https://img.shields.io/badge/MCP_Prompts-6-brightgreen)]()
 
@@ -40,12 +40,12 @@ If you need to upgrade Node.js, visit [nodejs.org](https://nodejs.org/) or use a
 npm install -g @eldrforge/kodrdriv
 ```
 
-## 🤖 MCP Integration (NEW!)
+## 🤖 MCP Integration
 
-KodrDriv now supports the **Model Context Protocol (MCP)**, enabling AI assistants like Cursor to directly invoke commands without shell execution!
+KodrDriv supports the **Model Context Protocol (MCP)**, enabling AI assistants like Cursor to directly invoke kodrdriv commands.
 
 ### Features
-- **13 MCP Tools**: All kodrdriv commands available via MCP
+- **14 Fully Implemented Tools**: All kodrdriv commands including automated publish→development workflow
 - **8 Resources**: Access configs, status, workspace data via `kodrdriv://` URIs
 - **6 Workflow Prompts**: Guided multi-step operations
 
@@ -65,9 +65,8 @@ Add to `.cursor/mcp.json`:
 Then simply ask: *"Use kodrdriv to commit my changes"*
 
 ### Documentation
-- **[Quick Start](docs/mcp-quick-start.md)** - Get started in 5 minutes
 - **[Integration Guide](MCP_INTEGRATION.md)** - Complete MCP documentation
-- **[Tools Reference](docs/mcp-tools-reference.md)** - All 13 tools
+- **[Tools Reference](docs/mcp-tools-reference.md)** - All 14 tools
 - **[Resources Reference](docs/mcp-resources-reference.md)** - All 8 resources
 - **[Prompts Reference](docs/mcp-prompts-reference.md)** - All 6 workflows
 
