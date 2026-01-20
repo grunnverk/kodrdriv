@@ -63,7 +63,11 @@ export default defineConfig({
     build: {
         target: 'esnext',
         outDir: 'dist',
-        ssr: true,
+        lib: {
+            entry: './src/main.ts',
+            formats: ['es'],
+            fileName: 'main',
+        },
         rollupOptions: {
             external: [
                 // Command packages
@@ -90,10 +94,10 @@ export default defineConfig({
                 '@riotprompt/riotprompt/formatter',
                 '@riotprompt/riotprompt/chat'
             ],
-            input: ['src/main.ts', 'src/mcp/server.ts'],
+            input: 'src/main.ts',
             output: {
                 dir: 'dist',
-                format: 'esm',
+                format: 'es',
                 entryFileNames: '[name].js',
                 chunkFileNames: '[name].js',
                 preserveModules: true,
