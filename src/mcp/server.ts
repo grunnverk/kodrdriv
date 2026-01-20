@@ -20,6 +20,7 @@ import { executeTool } from './tools.js';
 import { getResources, readResource } from './resources.js';
 import { getPrompts, getPrompt } from './prompts/index.js';
 import { getLogger } from '../logging.js';
+import { getLogger as getCoreLogger } from '@eldrforge/core';
 import winston from 'winston';
 /* eslint-enable import/extensions */
 
