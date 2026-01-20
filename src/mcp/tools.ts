@@ -744,7 +744,7 @@ async function executeCommand<T>(
             progress: 0,
         };
         if (totalCount !== null && totalCount !== undefined) {
-            initialParams.total = totalCount;
+            initialParams.total = Math.floor(totalCount);
         }
         if (initialMessage) {
             initialParams.message = initialMessage;
@@ -767,9 +767,12 @@ async function executeCommand<T>(
                 const packageProgress = extractPackageProgress(logs, totalCount);
 
                 // Use completed count if available, otherwise use current index
-                const progress = packageProgress.completedCount > 0
-                    ? packageProgress.completedCount
-                    : (packageProgress.currentIndex ?? 0);
+                // Ensure progress is always an integer to prevent JSON serialization issues
+                const progress = Math.floor(
+                    packageProgress.completedCount > 0
+                        ? packageProgress.completedCount
+                        : (packageProgress.currentIndex ?? 0)
+                );
 
                 // Send progress notification (fire and forget - don't block execution)
                 // Build params object without undefined values to prevent JSON serialization issues
@@ -778,7 +781,7 @@ async function executeCommand<T>(
                     progress,
                 };
                 if (totalCount !== null && totalCount !== undefined) {
-                    progressParams.total = totalCount;
+                    progressParams.total = Math.floor(totalCount);
                 }
                 if (packageProgress.message) {
                     progressParams.message = packageProgress.message;
@@ -795,7 +798,7 @@ async function executeCommand<T>(
                 const heartbeatParams: Record<string, any> = {
                     progressToken: context.progressToken!,
                     progress: 0,
-                    total: totalCount,
+                    total: Math.floor(totalCount),
                 };
                 if (initialMessage) {
                     heartbeatParams.message = initialMessage;
@@ -825,15 +828,18 @@ async function executeCommand<T>(
                 const packageProgress = extractPackageProgress(logs, totalCount);
 
                 // Use completed count if available, otherwise use current index
-                const progress = packageProgress.completedCount > 0
-                    ? packageProgress.completedCount
-                    : (packageProgress.currentIndex ?? 0);
+                // Ensure progress is always an integer to prevent JSON serialization issues
+                const progress = Math.floor(
+                    packageProgress.completedCount > 0
+                        ? packageProgress.completedCount
+                        : (packageProgress.currentIndex ?? 0)
+                );
 
                 // Call progress callback (fire and forget - don't block execution)
                 void Promise.resolve(
                     context.progressCallback!(
                         progress,
-                        totalCount ?? null,
+                        totalCount !== null ? Math.floor(totalCount) : null,
                         packageProgress.message,
                         newLogs.length > 0 ? newLogs : undefined
                     )
@@ -843,7 +849,7 @@ async function executeCommand<T>(
             } else if (totalCount !== null) {
                 // Even if no new logs, send periodic heartbeat with current status
                 void Promise.resolve(
-                    context.progressCallback!(0, totalCount, initialMessage, undefined)
+                    context.progressCallback!(0, Math.floor(totalCount), initialMessage, undefined)
                 ).catch(() => {
                     // Ignore errors in progress callback
                 });
@@ -890,10 +896,13 @@ async function executeCommand<T>(
                 (logs.length > 0
                     ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
                     : 'Command completed successfully');
-            const finalProgress = packageProgress.completedCount > 0
-                ? packageProgress.completedCount
-                : (totalCount ?? logs.length);
-            const finalTotal = totalCount ?? finalProgress;
+            // Ensure progress is always an integer to prevent JSON serialization issues
+            const finalProgress = Math.floor(
+                packageProgress.completedCount > 0
+                    ? packageProgress.completedCount
+                    : (totalCount ?? logs.length)
+            );
+            const finalTotal = totalCount !== null ? Math.floor(totalCount) : finalProgress;
             const finalParams: Record<string, any> = {
                 progressToken: context.progressToken,
                 progress: finalProgress,
@@ -916,11 +925,15 @@ async function executeCommand<T>(
                 (logs.length > 0
                     ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
                     : 'Command completed successfully');
-            const finalProgress = packageProgress.completedCount > 0
-                ? packageProgress.completedCount
-                : (totalCount ?? logs.length);
+            // Ensure progress is always an integer to prevent JSON serialization issues
+            const finalProgress = Math.floor(
+                packageProgress.completedCount > 0
+                    ? packageProgress.completedCount
+                    : (totalCount ?? logs.length)
+            );
+            const finalTotal = totalCount !== null ? Math.floor(totalCount) : finalProgress;
             void Promise.resolve(
-                context.progressCallback(finalProgress, totalCount ?? finalProgress, finalMessage, logs)
+                context.progressCallback(finalProgress, finalTotal, finalMessage, logs)
             ).catch(() => {
                 // Ignore errors in progress callback
             });
@@ -959,7 +972,7 @@ async function executeCommand<T>(
         if (context.sendNotification && context.progressToken) {
             const errorParams: Record<string, any> = {
                 progressToken: context.progressToken,
-                progress: logs.length,
+                progress: Math.floor(logs.length),
             };
             const errorMessage = `Error: ${error.message || 'Command failed'}`;
             if (errorMessage) {
@@ -974,7 +987,7 @@ async function executeCommand<T>(
         } else if (context.progressCallback) {
             void Promise.resolve(
                 context.progressCallback(
-                    logs.length,
+                    Math.floor(logs.length),
                     null,
                     `Error: ${error.message || 'Command failed'}`,
                     logs.length > 0 ? logs : undefined
