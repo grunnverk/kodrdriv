@@ -123,14 +123,20 @@ async function main() {
                     }) => {
                         // Use sendNotification directly with proper typing
                         if (notification.method === 'notifications/progress' && _meta?.progressToken) {
+                            // Build params object, removing undefined values to prevent JSON serialization issues
+                            const params: Record<string, any> = {
+                                progressToken: _meta.progressToken,
+                                progress: notification.params.progress,
+                            };
+                            if (notification.params.total !== undefined) {
+                                params.total = notification.params.total;
+                            }
+                            if (notification.params.message !== undefined) {
+                                params.message = notification.params.message;
+                            }
                             await sendNotification({
                                 method: 'notifications/progress',
-                                params: {
-                                    progressToken: _meta.progressToken,
-                                    progress: notification.params.progress,
-                                    total: notification.params.total,
-                                    message: notification.params.message,
-                                },
+                                params: removeUndefinedValues(params) as any,
                             });
                         }
                     },

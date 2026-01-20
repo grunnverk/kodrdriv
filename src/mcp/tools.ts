@@ -11,11 +11,36 @@ import * as CommandsTree from '@eldrforge/commands-tree';
 import * as CommandsPublish from '@eldrforge/commands-publish';
 // Import error formatting functions from core package
 // These functions are exported from @eldrforge/core
-import { formatErrorForMCP, extractCommandErrorDetails } from '@eldrforge/core';
+import { formatErrorForMCP, extractCommandErrorDetails, getLogger as getCoreLogger } from '@eldrforge/core';
 import { VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from '../constants.js';
 import { installLogCapture } from './logCapture.js';
 import { scanForPackageJsonFiles, buildDependencyGraph, topologicalSort } from '@eldrforge/tree-core';
+// Import setLogger to configure tree-execution logging to go through winston (not console)
+import { setLogger as setTreeExecutionLogger } from '@eldrforge/tree-execution';
 /* eslint-enable import/extensions */
+
+/**
+ * Configure tree-execution to use the winston logger instead of console.log
+ * This is critical for MCP server mode where console output interferes with the protocol.
+ * We route all tree-execution logs through the core winston logger, which is:
+ * 1. Captured by installLogCapture for MCP responses
+ * 2. Has console transports removed in MCP server mode
+ */
+function configureTreeExecutionLogger(): void {
+    const coreLogger = getCoreLogger();
+    setTreeExecutionLogger({
+        info: (message: string, ...args: any[]) => coreLogger.info(message, ...args),
+        error: (message: string, ...args: any[]) => coreLogger.error(message, ...args),
+        warn: (message: string, ...args: any[]) => coreLogger.warn(message, ...args),
+        verbose: (message: string, ...args: any[]) => coreLogger.verbose(message, ...args),
+        debug: (message: string, ...args: any[]) => coreLogger.debug(message, ...args),
+        silly: (message: string, ...args: any[]) => coreLogger.silly(message, ...args),
+    });
+}
+
+// Configure tree-execution logger immediately when this module is loaded
+// This ensures tree-execution never uses console.log in MCP mode
+configureTreeExecutionLogger();
 
 /**
  * Base tool executor - wraps command logic
@@ -609,32 +634,32 @@ function extractPackageProgress(logs: string[], totalPackages: number | null): {
     // Pattern: "[N/TOTAL] package-name: Running command..." or "[N/TOTAL] package-name: ..."
     // Also handles emoji prefixes like "ℹ️ [1/13] package-name: ..."
     const packagePattern = /(?:[^\s]+\s+)?\[(\d+)\/(\d+)\]\s+([^:]+):\s*(.+)/;
-    
+
     // Also look for completion patterns
     const completionPattern = /(?:✅|✓|Success|completed|finished).*?\[(\d+)\/(\d+)\]/i;
-    
+
     let currentPackage: string | null = null;
     let currentIndex: number | null = null;
     let completedCount = 0;
-    
+
     // Scan logs from newest to oldest to find the most recent package being processed
     for (let i = logs.length - 1; i >= 0; i--) {
         const log = logs[i];
         const packageMatch = log.match(packagePattern);
-        
+
         if (packageMatch) {
             const index = parseInt(packageMatch[1], 10);
             const packageName = packageMatch[3].trim();
             const action = packageMatch[4].trim();
-            
+
             // Use the most recent package we find
             if (!currentPackage) {
                 currentPackage = packageName;
                 currentIndex = index;
             }
-            
+
             // Check if this looks like a completion
-            if (action.toLowerCase().includes('completed') || 
+            if (action.toLowerCase().includes('completed') ||
                 action.toLowerCase().includes('success') ||
                 action.toLowerCase().includes('finished') ||
                 log.includes('✅') ||
@@ -642,7 +667,7 @@ function extractPackageProgress(logs: string[], totalPackages: number | null): {
                 completedCount = Math.max(completedCount, index);
             }
         }
-        
+
         // Also check for completion patterns
         const completionMatch = log.match(completionPattern);
         if (completionMatch) {
@@ -650,7 +675,7 @@ function extractPackageProgress(logs: string[], totalPackages: number | null): {
             completedCount = Math.max(completedCount, index);
         }
     }
-    
+
     // Build progress message
     let message: string;
     if (currentPackage && currentIndex !== null && totalPackages !== null) {
@@ -664,7 +689,7 @@ function extractPackageProgress(logs: string[], totalPackages: number | null): {
         const latestLog = logs[logs.length - 1];
         message = latestLog.replace(/^[^\s]+\s/, '').trim() || 'Processing...';
     }
-    
+
     return {
         currentPackage,
         currentIndex,
@@ -713,14 +738,20 @@ async function executeCommand<T>(
     // Set up progress reporting if sendNotification is available
     if (context.sendNotification && context.progressToken) {
         // Send initial progress with discovered total if available
+        // Build params object without undefined values to prevent JSON serialization issues
+        const initialParams: Record<string, any> = {
+            progressToken: context.progressToken,
+            progress: 0,
+        };
+        if (totalCount !== null && totalCount !== undefined) {
+            initialParams.total = totalCount;
+        }
+        if (initialMessage) {
+            initialParams.message = initialMessage;
+        }
         void context.sendNotification({
             method: 'notifications/progress',
-            params: {
-                progressToken: context.progressToken,
-                progress: 0,
-                total: totalCount ?? undefined,
-                message: initialMessage,
-            },
+            params: initialParams as any,
         }).catch(() => {
             // Ignore errors in progress notifications
         });
@@ -734,36 +765,44 @@ async function executeCommand<T>(
             if (newLogs.length > 0 || logs.length > 0) {
                 // Extract package progress information from logs
                 const packageProgress = extractPackageProgress(logs, totalCount);
-                
-                // Use completed count if available, otherwise use log counter
-                const progress = packageProgress.completedCount > 0 
-                    ? packageProgress.completedCount 
-                    : (packageProgress.currentIndex ?? progressCounter + newLogs.length);
+
+                // Use completed count if available, otherwise use current index
+                const progress = packageProgress.completedCount > 0
+                    ? packageProgress.completedCount
+                    : (packageProgress.currentIndex ?? 0);
 
                 // Send progress notification (fire and forget - don't block execution)
-                // Include total if we discovered it upfront
+                // Build params object without undefined values to prevent JSON serialization issues
+                const progressParams: Record<string, any> = {
+                    progressToken: context.progressToken!,
+                    progress,
+                };
+                if (totalCount !== null && totalCount !== undefined) {
+                    progressParams.total = totalCount;
+                }
+                if (packageProgress.message) {
+                    progressParams.message = packageProgress.message;
+                }
                 void context.sendNotification!({
                     method: 'notifications/progress',
-                    params: {
-                        progressToken: context.progressToken!,
-                        progress,
-                        total: totalCount ?? undefined,
-                        message: packageProgress.message,
-                    },
+                    params: progressParams as any,
                 }).catch(() => {
                     // Ignore errors in progress notifications
                 });
             } else if (totalCount !== null) {
                 // Even if no new logs, send periodic heartbeat with current status
                 // This prevents the UI from showing stale "Starting command..." for too long
+                const heartbeatParams: Record<string, any> = {
+                    progressToken: context.progressToken!,
+                    progress: 0,
+                    total: totalCount,
+                };
+                if (initialMessage) {
+                    heartbeatParams.message = initialMessage;
+                }
                 void context.sendNotification!({
                     method: 'notifications/progress',
-                    params: {
-                        progressToken: context.progressToken!,
-                        progress: 0,
-                        total: totalCount,
-                        message: initialMessage,
-                    },
+                    params: heartbeatParams as any,
                 }).catch(() => {
                     // Ignore errors in progress notifications
                 });
@@ -784,11 +823,11 @@ async function executeCommand<T>(
             if (newLogs.length > 0 || logs.length > 0) {
                 // Extract package progress information from logs
                 const packageProgress = extractPackageProgress(logs, totalCount);
-                
-                // Use completed count if available, otherwise use log counter
-                const progress = packageProgress.completedCount > 0 
-                    ? packageProgress.completedCount 
-                    : (packageProgress.currentIndex ?? progressCounter + newLogs.length);
+
+                // Use completed count if available, otherwise use current index
+                const progress = packageProgress.completedCount > 0
+                    ? packageProgress.completedCount
+                    : (packageProgress.currentIndex ?? 0);
 
                 // Call progress callback (fire and forget - don't block execution)
                 void Promise.resolve(
@@ -847,32 +886,38 @@ async function executeCommand<T>(
         // Send final progress update
         if (context.sendNotification && context.progressToken) {
             const packageProgress = extractPackageProgress(logs, totalCount);
-            const finalMessage = packageProgress.message || 
+            const finalMessage = packageProgress.message ||
                 (logs.length > 0
                     ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
                     : 'Command completed successfully');
-            const finalProgress = packageProgress.completedCount > 0 
-                ? packageProgress.completedCount 
+            const finalProgress = packageProgress.completedCount > 0
+                ? packageProgress.completedCount
                 : (totalCount ?? logs.length);
+            const finalTotal = totalCount ?? finalProgress;
+            const finalParams: Record<string, any> = {
+                progressToken: context.progressToken,
+                progress: finalProgress,
+            };
+            if (finalTotal !== null && finalTotal !== undefined) {
+                finalParams.total = finalTotal;
+            }
+            if (finalMessage) {
+                finalParams.message = finalMessage;
+            }
             void context.sendNotification({
                 method: 'notifications/progress',
-                params: {
-                    progressToken: context.progressToken,
-                    progress: finalProgress,
-                    total: totalCount ?? finalProgress,
-                    message: finalMessage,
-                },
+                params: finalParams as any,
             }).catch(() => {
                 // Ignore errors in progress notifications
             });
         } else if (context.progressCallback) {
             const packageProgress = extractPackageProgress(logs, totalCount);
-            const finalMessage = packageProgress.message || 
+            const finalMessage = packageProgress.message ||
                 (logs.length > 0
                     ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
                     : 'Command completed successfully');
-            const finalProgress = packageProgress.completedCount > 0 
-                ? packageProgress.completedCount 
+            const finalProgress = packageProgress.completedCount > 0
+                ? packageProgress.completedCount
                 : (totalCount ?? logs.length);
             void Promise.resolve(
                 context.progressCallback(finalProgress, totalCount ?? finalProgress, finalMessage, logs)
@@ -912,13 +957,17 @@ async function executeCommand<T>(
 
         // Send error progress update
         if (context.sendNotification && context.progressToken) {
+            const errorParams: Record<string, any> = {
+                progressToken: context.progressToken,
+                progress: logs.length,
+            };
+            const errorMessage = `Error: ${error.message || 'Command failed'}`;
+            if (errorMessage) {
+                errorParams.message = errorMessage;
+            }
             void context.sendNotification({
                 method: 'notifications/progress',
-                params: {
-                    progressToken: context.progressToken,
-                    progress: logs.length,
-                    message: `Error: ${error.message || 'Command failed'}`,
-                },
+                params: errorParams as any,
             }).catch(() => {
                 // Ignore errors in progress notifications
             });
