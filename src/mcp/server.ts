@@ -62,15 +62,26 @@ async function main() {
     // The KODRDRIV_MCP_SERVER env var is already set above, which will prevent
     // createTransports from adding console transports. But we also remove any
     // existing console transports that might have been added before the env var was set.
-    const logger = getLogger();
 
-    // Remove all console transports - iterate over a copy of the array since we're modifying it
-    const transports = [...((logger as any).transports || [])];
-    for (const transport of transports) {
-        if (transport instanceof winston.transports.Console) {
-            logger.remove(transport);
+    // Helper to remove console transports from a winston logger
+    const removeConsoleTransports = (loggerInstance: winston.Logger) => {
+        const transports = [...((loggerInstance as any).transports || [])];
+        for (const transport of transports) {
+            if (transport instanceof winston.transports.Console) {
+                loggerInstance.remove(transport);
+            }
         }
-    }
+    };
+
+    // Remove console transports from kodrdriv's logger
+    const logger = getLogger();
+    removeConsoleTransports(logger);
+
+    // Remove console transports from core's logger (used by tree-execution and commands)
+    // This is critical because core's logger is initialized at module load time,
+    // before KODRDRIV_MCP_SERVER is set, so it will have console transports
+    const coreLogger = getCoreLogger();
+    removeConsoleTransports(coreLogger);
 
     // Initialize MCP server with high-level API
     const server = new McpServer(
