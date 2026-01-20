@@ -110,13 +110,19 @@ async function main() {
             let progressCallback: ((progress: number, total: number | null, message: string, logs?: string[]) => void) | undefined;
 
             // Set up progress callback if progressToken is provided
-            if (progressToken && transport) {
+            // Note: The current MCP SDK (v1.25.2) uses setRequestHandler which doesn't expose
+            // sendNotification directly. Progress notifications would require using server.tool()
+            // API instead, or accessing the transport's internal notification mechanism.
+            // For now, we set up the callback structure but actual notification sending
+            // may be limited. Logs are still captured and returned in the response.
+            if (progressToken) {
                 progressCallback = async (progress: number, total: number | null, message: string, logs?: string[]) => {
                     try {
-                        // Send progress notification via transport
-                        // The MCP SDK requires sending notifications through the transport
-                        if (transport) {
-                            await (transport as any).sendNotification?.({
+                        // Attempt to send progress notification via server/transport
+                        // This is a best-effort attempt - if the API isn't available,
+                        // logs will still be captured and returned in the final response
+                        if (transport && typeof (transport as any).sendNotification === 'function') {
+                            await (transport as any).sendNotification({
                                 method: 'notifications/progress',
                                 params: {
                                     progressToken,
@@ -126,6 +132,8 @@ async function main() {
                                 },
                             });
                         }
+                        // If sendNotification isn't available, the progress info is still
+                        // captured in logs and will be returned when the tool completes
                     } catch (error) {
                         // Silently fail progress notifications - don't break the main operation
                         // Progress notifications are optional and shouldn't break the tool execution

@@ -559,8 +559,10 @@ async function executeCommand<T>(
     let progressCounter = 0;
 
     if (context.progressCallback) {
-        // Send initial progress
-        context.progressCallback(0, null, 'Starting command...', []);
+        // Send initial progress (fire and forget)
+        void Promise.resolve(context.progressCallback(0, null, 'Starting command...', [])).catch(() => {
+            // Ignore errors in progress callback
+        });
 
         // Poll logs every 2 seconds to send progress updates
         progressInterval = setInterval(() => {
@@ -579,12 +581,17 @@ async function executeCommand<T>(
                 // Extract a clean message (remove emoji prefixes)
                 const cleanMessage = latestMessage.replace(/^[^\s]+\s/, '').trim() || 'Processing...';
 
-                context.progressCallback!(
-                    progressCounter,
-                    null,
-                    cleanMessage,
-                    newLogs.length > 0 ? newLogs : undefined
-                );
+                // Call progress callback (fire and forget - don't block execution)
+                void Promise.resolve(
+                    context.progressCallback!(
+                        progressCounter,
+                        null,
+                        cleanMessage,
+                        newLogs.length > 0 ? newLogs : undefined
+                    )
+                ).catch(() => {
+                    // Ignore errors in progress callback
+                });
             }
         }, 2000); // Poll every 2 seconds
     }
@@ -626,7 +633,11 @@ async function executeCommand<T>(
             const finalMessage = logs.length > 0
                 ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
                 : 'Command completed successfully';
-            context.progressCallback(logs.length, logs.length, finalMessage, logs);
+            void Promise.resolve(
+                context.progressCallback(logs.length, logs.length, finalMessage, logs)
+            ).catch(() => {
+                // Ignore errors in progress callback
+            });
         }
 
         // Build the result
@@ -660,12 +671,16 @@ async function executeCommand<T>(
 
         // Send error progress update
         if (context.progressCallback) {
-            context.progressCallback(
-                logs.length,
-                null,
-                `Error: ${error.message || 'Command failed'}`,
-                logs.length > 0 ? logs : undefined
-            );
+            void Promise.resolve(
+                context.progressCallback(
+                    logs.length,
+                    null,
+                    `Error: ${error.message || 'Command failed'}`,
+                    logs.length > 0 ? logs : undefined
+                )
+            ).catch(() => {
+                // Ignore errors in progress callback
+            });
         }
 
         const formatted = formatErrorForMCP(error);

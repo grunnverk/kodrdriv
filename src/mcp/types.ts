@@ -92,9 +92,10 @@ export interface KodrdrivUri {
 /**
  * Progress notification callback
  * Called periodically during long-running operations to send progress updates
+ * Can be async to support sending notifications
  */
 export interface ProgressCallback {
-    (progress: number, total: number | null, message: string, logs?: string[]): void;
+    (progress: number, total: number | null, message: string, logs?: string[]): void | Promise<void>;
 }
 
 /**
