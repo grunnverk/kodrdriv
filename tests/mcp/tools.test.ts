@@ -395,6 +395,36 @@ describe('MCP Tools', () => {
                     })
                 );
             });
+
+            it('should not include packages in result when undefined', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_commit', {}, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data).toBeDefined();
+                expect(result.data?.packages).toBeUndefined();
+            });
+
+            it('should not include packages in result when empty array', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_commit', { packages: [] }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data).toBeDefined();
+                expect(result.data?.packages).toBeUndefined();
+            });
+
+            it('should include packages in result when provided', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_commit', { packages: ['pkg-a', 'pkg-b'] }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data).toBeDefined();
+                expect(result.data?.packages).toEqual(['pkg-a', 'pkg-b']);
+            });
         });
 
         describe('kodrdriv_tree_publish', () => {
@@ -422,6 +452,25 @@ describe('MCP Tools', () => {
                     })
                 );
             });
+
+            it('should not include packages in result when undefined', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_publish', { dry_run: true }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data).toBeDefined();
+                expect(result.data?.packages).toBeUndefined();
+            });
+
+            it('should include packages in result when provided', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_publish', { packages: ['pkg-a'], dry_run: true }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toEqual(['pkg-a']);
+            });
         });
 
         describe('kodrdriv_tree_precommit', () => {
@@ -433,6 +482,25 @@ describe('MCP Tools', () => {
                 expect(result.success).toBe(true);
                 expect(result.data?.result).toBe('Tree precommit completed');
                 expect(CommandsTree.tree).toHaveBeenCalled();
+            });
+
+            it('should not include packages in result when undefined', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_precommit', {}, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data).toBeDefined();
+                expect(result.data?.packages).toBeUndefined();
+            });
+
+            it('should include packages in result when provided', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_precommit', { packages: ['pkg-a'] }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toEqual(['pkg-a']);
             });
         });
 
@@ -446,6 +514,24 @@ describe('MCP Tools', () => {
                 expect(result.data?.result).toBe('Tree link completed');
                 expect(CommandsTree.tree).toHaveBeenCalled();
             });
+
+            it('should not include packages in result when undefined', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_link', {}, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toBeUndefined();
+            });
+
+            it('should include packages in result when provided', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_link', { packages: ['pkg-a'] }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toEqual(['pkg-a']);
+            });
         });
 
         describe('kodrdriv_tree_unlink', () => {
@@ -458,6 +544,24 @@ describe('MCP Tools', () => {
                 expect(result.data?.result).toBe('Tree unlink completed');
                 expect(CommandsTree.tree).toHaveBeenCalled();
             });
+
+            it('should not include packages in result when undefined', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_unlink', {}, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toBeUndefined();
+            });
+
+            it('should include packages in result when provided', async () => {
+                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
+
+                const result = await executeTool('kodrdriv_tree_unlink', { packages: ['pkg-a'] }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toEqual(['pkg-a']);
+            });
         });
 
         describe('kodrdriv_tree_updates', () => {
@@ -469,6 +573,24 @@ describe('MCP Tools', () => {
                 expect(result.success).toBe(true);
                 expect(result.data?.updates).toBe('No updates available');
                 expect(CommandsTree.updates).toHaveBeenCalled();
+            });
+
+            it('should not include packages in result when undefined', async () => {
+                vi.mocked(CommandsTree.updates).mockResolvedValue('No updates');
+
+                const result = await executeTool('kodrdriv_tree_updates', {}, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toBeUndefined();
+            });
+
+            it('should include packages in result when provided', async () => {
+                vi.mocked(CommandsTree.updates).mockResolvedValue('No updates');
+
+                const result = await executeTool('kodrdriv_tree_updates', { packages: ['pkg-a'] }, context);
+
+                expect(result.success).toBe(true);
+                expect(result.data?.packages).toEqual(['pkg-a']);
             });
         });
 

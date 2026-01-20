@@ -9,6 +9,8 @@ import type { McpTool, ToolResult, ToolExecutionContext } from './types.js';
 import * as CommandsGit from '@eldrforge/commands-git';
 import * as CommandsTree from '@eldrforge/commands-tree';
 import * as CommandsPublish from '@eldrforge/commands-publish';
+// Import error formatting functions from core package
+// These functions are exported from @eldrforge/core
 import { formatErrorForMCP, extractCommandErrorDetails } from '@eldrforge/core';
 import { VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from '../constants.js';
 import { installLogCapture } from './logCapture.js';
@@ -558,8 +560,52 @@ async function executeCommand<T>(
     let lastLogCount = 0;
     let progressCounter = 0;
 
-    if (context.progressCallback) {
-        // Send initial progress (fire and forget)
+    // Set up progress reporting if sendNotification is available
+    if (context.sendNotification && context.progressToken) {
+        // Send initial progress
+        void context.sendNotification({
+            method: 'notifications/progress',
+            params: {
+                progressToken: context.progressToken,
+                progress: 0,
+                message: 'Starting command...',
+            },
+        }).catch(() => {
+            // Ignore errors in progress notifications
+        });
+
+        // Poll logs every 2 seconds to send progress updates
+        progressInterval = setInterval(() => {
+            const logs = getLogs();
+            const newLogs = logs.slice(lastLogCount);
+            lastLogCount = logs.length;
+
+            if (newLogs.length > 0 || logs.length > 0) {
+                progressCounter += newLogs.length;
+                const latestMessage = newLogs.length > 0
+                    ? newLogs[newLogs.length - 1]
+                    : logs.length > 0
+                        ? logs[logs.length - 1]
+                        : 'Processing...';
+
+                // Extract a clean message (remove emoji prefixes)
+                const cleanMessage = latestMessage.replace(/^[^\s]+\s/, '').trim() || 'Processing...';
+
+                // Send progress notification (fire and forget - don't block execution)
+                void context.sendNotification!({
+                    method: 'notifications/progress',
+                    params: {
+                        progressToken: context.progressToken!,
+                        progress: progressCounter,
+                        message: cleanMessage,
+                    },
+                }).catch(() => {
+                    // Ignore errors in progress notifications
+                });
+            }
+        }, 2000); // Poll every 2 seconds
+    } else if (context.progressCallback) {
+        // Fallback to progress callback if sendNotification isn't available
         void Promise.resolve(context.progressCallback(0, null, 'Starting command...', [])).catch(() => {
             // Ignore errors in progress callback
         });
@@ -629,7 +675,22 @@ async function executeCommand<T>(
         remove();
 
         // Send final progress update
-        if (context.progressCallback) {
+        if (context.sendNotification && context.progressToken) {
+            const finalMessage = logs.length > 0
+                ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
+                : 'Command completed successfully';
+            void context.sendNotification({
+                method: 'notifications/progress',
+                params: {
+                    progressToken: context.progressToken,
+                    progress: logs.length,
+                    total: logs.length,
+                    message: finalMessage,
+                },
+            }).catch(() => {
+                // Ignore errors in progress notifications
+            });
+        } else if (context.progressCallback) {
             const finalMessage = logs.length > 0
                 ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
                 : 'Command completed successfully';
@@ -670,7 +731,18 @@ async function executeCommand<T>(
         remove();
 
         // Send error progress update
-        if (context.progressCallback) {
+        if (context.sendNotification && context.progressToken) {
+            void context.sendNotification({
+                method: 'notifications/progress',
+                params: {
+                    progressToken: context.progressToken,
+                    progress: logs.length,
+                    message: `Error: ${error.message || 'Command failed'}`,
+                },
+            }).catch(() => {
+                // Ignore errors in progress notifications
+            });
+        } else if (context.progressCallback) {
             void Promise.resolve(
                 context.progressCallback(
                     logs.length,
@@ -881,11 +953,16 @@ async function executeTreeCommit(args: any, context: ToolExecutionContext): Prom
             config.openaiReasoning = args.openaiReasoning || 'low';
             config.commit.openaiReasoning = args.openaiReasoning || 'low';
         },
-        (result, args, originalCwd) => ({
-            result,
-            directory: args.directory || originalCwd,
-            packages: args.packages,
-        })
+        (result, args, originalCwd) => {
+            const data: any = {
+                result,
+                directory: args.directory || originalCwd,
+            };
+            if (args.packages && args.packages.length > 0) {
+                data.packages = args.packages;
+            }
+            return data;
+        }
     );
 }
 
@@ -916,11 +993,16 @@ async function executeTreePublish(args: any, context: ToolExecutionContext): Pro
             }
             config.publish.targetVersion = args.version_type || 'patch';
         },
-        (result, args, originalCwd) => ({
-            result,
-            directory: args.directory || originalCwd,
-            packages: args.packages,
-        })
+        (result, args, originalCwd) => {
+            const data: any = {
+                result,
+                directory: args.directory || originalCwd,
+            };
+            if (args.packages && args.packages.length > 0) {
+                data.packages = args.packages;
+            }
+            return data;
+        }
     );
 }
 
@@ -944,11 +1026,16 @@ async function executeTreePrecommit(args: any, context: ToolExecutionContext): P
                 config.tree.fix = true;
             }
         },
-        (result, args, originalCwd) => ({
-            result,
-            directory: args.directory || originalCwd,
-            packages: args.packages,
-        })
+        (result, args, originalCwd) => {
+            const data: any = {
+                result,
+                directory: args.directory || originalCwd,
+            };
+            if (args.packages && args.packages.length > 0) {
+                data.packages = args.packages;
+            }
+            return data;
+        }
     );
 }
 
@@ -969,11 +1056,16 @@ async function executeTreeLink(args: any, context: ToolExecutionContext): Promis
                 config.tree.startFrom = args.start_from;
             }
         },
-        (result, args, originalCwd) => ({
-            result,
-            directory: args.directory || originalCwd,
-            packages: args.packages,
-        })
+        (result, args, originalCwd) => {
+            const data: any = {
+                result,
+                directory: args.directory || originalCwd,
+            };
+            if (args.packages && args.packages.length > 0) {
+                data.packages = args.packages;
+            }
+            return data;
+        }
     );
 }
 
@@ -994,11 +1086,16 @@ async function executeTreeUnlink(args: any, context: ToolExecutionContext): Prom
                 config.tree.startFrom = args.start_from;
             }
         },
-        (result, args, originalCwd) => ({
-            result,
-            directory: args.directory || originalCwd,
-            packages: args.packages,
-        })
+        (result, args, originalCwd) => {
+            const data: any = {
+                result,
+                directory: args.directory || originalCwd,
+            };
+            if (args.packages && args.packages.length > 0) {
+                data.packages = args.packages;
+            }
+            return data;
+        }
     );
 }
 

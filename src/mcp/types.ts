@@ -107,6 +107,16 @@ export interface ToolExecutionContext {
     config?: any; // KodrDriv config
     logger: any; // Logger instance
     progressCallback?: ProgressCallback; // Optional progress callback for long-running operations
+    sendNotification?: (notification: {
+        method: string;
+        params: {
+            progressToken?: string | number;
+            progress: number;
+            total?: number;
+            message?: string;
+        };
+    }) => Promise<void>; // MCP sendNotification function for progress updates
+    progressToken?: string | number; // Progress token from request metadata
 }
 
 /**

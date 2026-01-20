@@ -58,7 +58,7 @@
     "@eldrforge/shared": "^0.1.10",
     "@eldrforge/tree-core": "^0.1.8",
     "@eldrforge/tree-execution": "^0.1.8",
-    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "@octokit/rest": "^22.0.0",
     "@riotprompt/riotprompt": "^0.0.21",
     "@theunwalked/cardigantime": "^0.0.22",
