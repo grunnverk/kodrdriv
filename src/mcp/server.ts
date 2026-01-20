@@ -23,7 +23,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { tools, executeTool } from './tools.js';
 import { getResources, readResource } from './resources.js';
-import { getPrompts, getPrompt } from './prompts.js';
+import { getPrompts, getPrompt } from './prompts/index.js';
 /* eslint-enable import/extensions */
 
 /**
@@ -97,17 +97,45 @@ async function main() {
             );
 
             if (result.success) {
-                return {
-                    content: [{
+                // Build response with logs if available
+                const content: Array<{ type: 'text'; text: string }> = [];
+
+                // Add logs first if they exist
+                if (result.logs && result.logs.length > 0) {
+                    content.push({
                         type: 'text' as const,
-                        text: JSON.stringify(result.data, null, 2),
-                    }],
-                };
+                        text: '=== Command Output ===\n' + result.logs.join('\n') + '\n\n=== Result ===',
+                    });
+                }
+
+                // Add the result data
+                content.push({
+                    type: 'text' as const,
+                    text: JSON.stringify(result.data, null, 2),
+                });
+
+                return { content };
             } else {
+                // Build error response with logs if available
+                const errorParts: string[] = [];
+
+                if (result.logs && result.logs.length > 0) {
+                    errorParts.push('=== Command Output ===');
+                    errorParts.push(result.logs.join('\n'));
+                    errorParts.push('\n=== Error ===');
+                }
+
+                errorParts.push(result.error || 'Unknown error');
+
+                if (result.recovery && result.recovery.length > 0) {
+                    errorParts.push('\n=== Recovery Steps ===');
+                    errorParts.push(...result.recovery.map((step, i) => `${i + 1}. ${step}`));
+                }
+
                 return {
                     content: [{
                         type: 'text' as const,
-                        text: result.error || 'Unknown error',
+                        text: errorParts.join('\n'),
                     }],
                     isError: true,
                 };

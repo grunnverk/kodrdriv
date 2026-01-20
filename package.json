@@ -21,7 +21,7 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "clean": "rm -rf dist",
-    "precommit": "npm run build && npm run lint && npm run test",
+    "precommit": "npm run build && npm run lint && npm run test && npm run mcp:test",
     "prepublishOnly": "npm run lint && npm run build && npm run test",
     "mcp:build": "vite build && chmod 755 ./dist/mcp-server.js 2>/dev/null || true",
     "mcp:inspect": "mcp-inspector npx -y @modelcontextprotocol/server-kodrdriv",

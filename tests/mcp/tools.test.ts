@@ -41,12 +41,12 @@ describe('MCP Tools', () => {
     });
 
     describe('tools array', () => {
-        it('should have 14 tools defined', () => {
-            expect(tools).toHaveLength(14);
+        it('should have 15 tools defined', () => {
+            expect(tools).toHaveLength(15);
         });
 
         it('should have all core tools', () => {
-            const coreTools = ['kodrdriv_commit', 'kodrdriv_release', 'kodrdriv_publish',
+            const coreTools = ['kodrdriv_get_version', 'kodrdriv_commit', 'kodrdriv_release', 'kodrdriv_publish',
                 'kodrdriv_development', 'kodrdriv_precommit', 'kodrdriv_review', 'kodrdriv_pull'];
 
             coreTools.forEach(toolName => {
@@ -91,7 +91,6 @@ describe('MCP Tools', () => {
             expect(publishTool?.inputSchema.properties).toHaveProperty('version_type');
             expect(publishTool?.inputSchema.properties).toHaveProperty('dry_run');
             expect(publishTool?.inputSchema.properties).toHaveProperty('skip_tests');
-            expect(publishTool?.inputSchema.properties).toHaveProperty('run_development');
         });
 
         it('should have proper input schema for development tool', () => {
@@ -214,7 +213,7 @@ describe('MCP Tools', () => {
                 const result = await executeTool('kodrdriv_publish', { version_type: 'minor', dry_run: true }, context);
 
                 expect(result.success).toBe(true);
-                expect(result.data?.publishResult).toBeUndefined();
+                expect(result.data?.result).toBeUndefined();
                 expect(CommandsPublish.publish).toHaveBeenCalled();
             });
 
@@ -231,39 +230,6 @@ describe('MCP Tools', () => {
                         dryRun: true,
                     })
                 );
-            });
-
-            it('should automatically run development after publish', async () => {
-                vi.mocked(CommandsPublish.publish).mockResolvedValue(undefined as any);
-                vi.mocked(CommandsPublish.development).mockResolvedValue('Development workflow completed');
-
-                const result = await executeTool('kodrdriv_publish', { version_type: 'patch' }, context);
-
-                expect(result.success).toBe(true);
-                expect(CommandsPublish.publish).toHaveBeenCalled();
-                expect(CommandsPublish.development).toHaveBeenCalled();
-                expect(result.data?.developmentResult).toBe('Development workflow completed');
-            });
-
-            it('should skip development if run_development is false', async () => {
-                vi.mocked(CommandsPublish.publish).mockResolvedValue(undefined as any);
-
-                const result = await executeTool('kodrdriv_publish', { version_type: 'patch', run_development: false }, context);
-
-                expect(result.success).toBe(true);
-                expect(CommandsPublish.publish).toHaveBeenCalled();
-                expect(CommandsPublish.development).not.toHaveBeenCalled();
-            });
-
-            it('should not fail publish if development fails', async () => {
-                vi.mocked(CommandsPublish.publish).mockResolvedValue(undefined as any);
-                vi.mocked(CommandsPublish.development).mockRejectedValue(new Error('Development failed'));
-
-                const result = await executeTool('kodrdriv_publish', { version_type: 'patch' }, context);
-
-                expect(result.success).toBe(true);
-                expect(CommandsPublish.publish).toHaveBeenCalled();
-                expect(result.data?.developmentResult).toContain('Development workflow failed');
             });
 
             it('should handle publish tool failure', async () => {

@@ -126,6 +126,8 @@ export interface ToolResult {
         completedSteps: string[];
         remainingPackages?: string[];
     };
+    // Captured log output from command execution
+    logs?: string[];
 }
 
 // ============================================================================

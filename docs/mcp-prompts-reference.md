@@ -1,6 +1,6 @@
 # KodrDriv MCP Prompts Reference
 
-Complete reference for all 6 workflow prompts available in KodrDriv.
+Complete reference for all workflow prompts available in KodrDriv.
 
 ## What are Prompts?
 
@@ -110,26 +110,6 @@ Handle merge conflicts with context.
 
 **Example in Cursor:**
 > "Merge the feature-x branch using kodrdriv"
-
-### 6. issue_from_review
-
-Create GitHub issues from review notes.
-
-**Arguments:**
-- `review_file` (required) - Path to review notes file
-
-**Workflow:**
-1. Use `kodrdriv_review` with `dry_run=true` to preview
-2. Review the extracted action items
-3. Run `kodrdriv_review` with `dry_run=false` to create issues
-
-**Use Case:**
-- Code review follow-ups
-- Converting review comments to trackable issues
-- Automating issue creation
-
-**Example in Cursor:**
-> "Create GitHub issues from my review notes"
 
 ## How to Use Prompts
 

@@ -2,7 +2,7 @@
 // This MUST be the first thing we do, before any other imports that might load dotenv
 // This ensures that shell-exported variables like OPENAI_API_KEY take precedence
 import { config as dotenvConfig } from 'dotenv';
-dotenvConfig({ override: false });
+dotenvConfig({ override: false, debug: false });
 
 import * as Cardigantime from '@theunwalked/cardigantime';
 import { setLogger as setGitLogger } from '@eldrforge/git-tools';
@@ -17,7 +17,7 @@ import * as CommandsGit from '@eldrforge/commands-git';
 import * as CommandsTree from '@eldrforge/commands-tree';
 import * as CommandsPublish from '@eldrforge/commands-publish';
 import * as CommandsAudio from '@eldrforge/commands-audio';
-import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION } from './constants';
+import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from './constants';
 import { UserCancellationError } from '@eldrforge/shared';
 import { getLogger, setLogLevel } from './logging';
 import { Config, SecureConfig, ConfigSchema } from './types';
@@ -41,6 +41,18 @@ function checkNodeVersion(): void {
         console.error(`   This project uses Vite 7+ which requires Node.js ${requiredMajorVersion}+.\n`);
         process.exit(1);
     }
+}
+
+/**
+ * Get formatted version information including build metadata.
+ */
+export function getVersionInfo(): { version: string; buildHostname: string; buildTimestamp: string; formatted: string } {
+    return {
+        version: VERSION,
+        buildHostname: BUILD_HOSTNAME,
+        buildTimestamp: BUILD_TIMESTAMP,
+        formatted: `${VERSION}\nBuilt on: ${BUILD_HOSTNAME}\nBuild time: ${BUILD_TIMESTAMP}`
+    };
 }
 
 /**
@@ -151,8 +163,9 @@ export async function runApplication(): Promise<void> {
     setGitHubLogger(logger);
     setPromptFunction(promptConfirmation);
 
-    // Display version information
-    logger.info('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | Status: starting', VERSION);
+    // Display version information including build metadata
+    logger.info('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | BuildHost: %s | BuildTime: %s | Status: starting',
+        VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP);
 
     // Handle check-config command first
     if (commandConfig.commandName === COMMAND_CHECK_CONFIG) {

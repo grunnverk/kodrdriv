@@ -10,6 +10,8 @@ import * as CommandsGit from '@eldrforge/commands-git';
 import * as CommandsTree from '@eldrforge/commands-tree';
 import * as CommandsPublish from '@eldrforge/commands-publish';
 import { formatErrorForMCP, extractCommandErrorDetails } from '@eldrforge/core';
+import { VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from '../constants.js';
+import { installLogCapture } from './logCapture.js';
 /* eslint-enable import/extensions */
 
 /**
@@ -24,6 +26,8 @@ export async function executeTool(
         // Route to specific tool handler
         switch (toolName) {
             // Core tools
+            case 'kodrdriv_get_version':
+                return await executeGetVersion(args, context);
             case 'kodrdriv_commit':
                 return await executeCommit(args, context);
             case 'kodrdriv_release':
@@ -86,6 +90,16 @@ export const tools: McpTool[] = [
     // Core Tools
     // ========================================================================
     {
+        name: 'kodrdriv_get_version',
+        description:
+            'Get version information for kodrdriv including build metadata. ' +
+            'Returns version, git branch, commit hash, build hostname, and build timestamp.',
+        inputSchema: {
+            type: 'object',
+            properties: {},
+        },
+    },
+    {
         name: 'kodrdriv_commit',
         description:
             'Generate an intelligent commit message from staged changes. ' +
@@ -109,6 +123,11 @@ export const tools: McpTool[] = [
                 dry_run: {
                     type: 'boolean',
                     description: 'Generate message without committing (default: false)',
+                },
+                openaiReasoning: {
+                    type: 'string',
+                    enum: ['low', 'medium', 'high'],
+                    description: 'OpenAI reasoning level for commit message generation (default: low)',
                 },
             },
         },
@@ -150,8 +169,7 @@ export const tools: McpTool[] = [
         description:
             'Automated package publishing workflow. ' +
             'Handles version bumping, git tagging, npm publishing, ' +
-            'and GitHub release creation in a coordinated flow. ' +
-            'Automatically runs development workflow after publish if run_development flag is set.',
+            'and GitHub release creation in a coordinated flow.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -170,10 +188,6 @@ export const tools: McpTool[] = [
                 skip_tests: {
                     type: 'boolean',
                     description: 'Skip running tests before publish (default: false)',
-                },
-                run_development: {
-                    type: 'boolean',
-                    description: 'Automatically run development workflow after publish to bump working branch (default: true)',
                 },
             },
         },
@@ -303,6 +317,15 @@ export const tools: McpTool[] = [
                     type: 'boolean',
                     description: 'Auto-commit without confirmation',
                 },
+                start_from: {
+                    type: 'string',
+                    description: 'Package name or directory to start from',
+                },
+                openaiReasoning: {
+                    type: 'string',
+                    enum: ['low', 'medium', 'high'],
+                    description: 'OpenAI reasoning level for commit message generation (default: low)',
+                },
             },
         },
     },
@@ -340,6 +363,10 @@ export const tools: McpTool[] = [
                     type: 'boolean',
                     description: 'Clean up failed state and reset checkpoint',
                 },
+                start_from: {
+                    type: 'string',
+                    description: 'Package name or directory to start from',
+                },
             },
         },
     },
@@ -364,6 +391,10 @@ export const tools: McpTool[] = [
                     type: 'boolean',
                     description: 'Auto-fix issues where possible',
                 },
+                start_from: {
+                    type: 'string',
+                    description: 'Package name or directory to start from',
+                },
             },
         },
     },
@@ -383,6 +414,10 @@ export const tools: McpTool[] = [
                     type: 'array',
                     items: { type: 'string' },
                     description: 'Specific packages to link',
+                },
+                start_from: {
+                    type: 'string',
+                    description: 'Package name or directory to start from',
                 },
             },
         },
@@ -404,6 +439,10 @@ export const tools: McpTool[] = [
                     items: { type: 'string' },
                     description: 'Specific packages to unlink',
                 },
+                start_from: {
+                    type: 'string',
+                    description: 'Package name or directory to start from',
+                },
             },
         },
     },
@@ -424,6 +463,10 @@ export const tools: McpTool[] = [
                     items: { type: 'string' },
                     description: 'Specific packages to check',
                 },
+                start_from: {
+                    type: 'string',
+                    description: 'Package name or directory to start from',
+                },
             },
         },
     },
@@ -443,6 +486,10 @@ export const tools: McpTool[] = [
                     type: 'boolean',
                     description: 'Use rebase instead of merge',
                 },
+                start_from: {
+                    type: 'string',
+                    description: 'Package name or directory to start from',
+                },
             },
         },
     },
@@ -451,6 +498,28 @@ export const tools: McpTool[] = [
 // ============================================================================
 // Tool Executors
 // ============================================================================
+
+/**
+ * Get version information
+ */
+async function executeGetVersion(_args: any, _context: ToolExecutionContext): Promise<ToolResult> {
+    try {
+        return {
+            success: true,
+            data: {
+                version: VERSION,
+                buildHostname: BUILD_HOSTNAME,
+                buildTimestamp: BUILD_TIMESTAMP,
+            },
+            message: `kodrdriv ${VERSION}\nBuilt on: ${BUILD_HOSTNAME}\nBuild time: ${BUILD_TIMESTAMP}`,
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+}
 
 /**
  * Helper to create Config object from MCP args
@@ -468,168 +537,71 @@ function createConfig(args: any, _context: ToolExecutionContext): any {
     };
 }
 
-async function executeCommit(args: any, context: ToolExecutionContext): Promise<ToolResult> {
+/**
+ * Generic command executor - wraps command execution with common patterns
+ * Handles directory changes, config creation, log capturing, and error formatting
+ */
+async function executeCommand<T>(
+    args: any,
+    context: ToolExecutionContext,
+    commandFn: (config: any) => Promise<T>,
+    configBuilder?: (config: any, args: any) => void,
+    resultBuilder?: (result: T, args: any, originalCwd: string) => any
+): Promise<ToolResult> {
+    const originalCwd = process.cwd();
+
+    // Install log capturing transport on the global logger
+    const { getLogs, remove } = installLogCapture();
+
     try {
         // Change to target directory if specified
-        const originalCwd = process.cwd();
         if (args.directory) {
             process.chdir(args.directory);
         }
 
+        // Create base config
         const config = createConfig(args, context);
-        if (!config.commit) {
-            config.commit = {};
-        }
-        config.commit.sendit = args.sendit || false;
-        config.commit.interactive = !args.sendit; // Non-interactive if sendit
-        config.dryRun = args.dry_run || false;
 
-        if (args.issue) {
-            config.commit.context = `GitHub Issue #${args.issue}`;
+        // Allow command-specific config customization
+        if (configBuilder) {
+            configBuilder(config, args);
         }
 
-        const result = await CommandsGit.commit(config);
+        // Execute the command
+        const result = await commandFn(config);
 
         // Restore original directory
         if (args.directory) {
             process.chdir(originalCwd);
         }
 
-        return {
-            success: true,
-            data: {
-                message: result,
-                directory: args.directory || originalCwd,
-                committed: args.sendit && !args.dry_run,
-            },
-            message: args.dry_run ? 'Dry run completed' : 'Commit completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
+        // Get captured logs and remove transport
+        const logs = getLogs();
+        remove();
 
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
-}
-
-async function executeRelease(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.release) {
-            config.release = {};
-        }
-        config.release.from = args.from_tag;
-        config.release.to = args.to_tag;
-        config.release.interactive = false; // Non-interactive for MCP
-
-        const result = await CommandsPublish.release(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
+        // Build the result
+        const data = resultBuilder ? resultBuilder(result, args, originalCwd) : { result, directory: args.directory || originalCwd };
 
         return {
             success: true,
-            data: {
-                releaseNotes: result,
-                directory: args.directory || originalCwd,
-                version: args.version,
-            },
-            message: 'Release notes generated successfully',
+            data,
+            message: args.dry_run ? 'Dry run completed' : 'Command completed successfully',
+            logs: logs.length > 0 ? logs : undefined,
         };
     } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
-}
-
-async function executePublish(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.publish) {
-            config.publish = {};
-        }
-        config.publish.targetVersion = args.version_type || 'patch';
-        config.publish.sendit = !args.dry_run;
-        config.publish.interactive = false;
-        config.publish.skipUserConfirmation = args.skip_tests || false;
-        config.dryRun = args.dry_run || false;
-
-        const result = await CommandsPublish.publish(config);
-
-        // Automatically run development workflow after publish (default: true)
-        const runDevelopment = args.run_development !== false;
-        let developmentResult: string | undefined;
-
-        if (runDevelopment && !args.dry_run) {
+        // Restore directory on error
+        if (args.directory && process.cwd() !== originalCwd) {
             try {
-                // Create config for development command
-                const devConfig = createConfig(args, context);
-                if (!devConfig.development) {
-                    devConfig.development = {};
-                }
-                devConfig.development.targetVersion = args.version_type || 'patch';
-                devConfig.development.tagWorkingBranch = true;
-                devConfig.dryRun = args.dry_run || false;
-
-                developmentResult = await CommandsPublish.development(devConfig);
-            } catch (devError: any) {
-                // Store development error but don't fail publish
-                developmentResult = `Development workflow failed: ${devError.message}`;
+                process.chdir(originalCwd);
+            } catch {
+                // Ignore errors restoring directory
             }
         }
 
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
+        // Get captured logs and remove transport
+        const logs = getLogs();
+        remove();
 
-        return {
-            success: true,
-            data: {
-                publishResult: result,
-                developmentResult: developmentResult,
-                directory: args.directory || originalCwd,
-                versionType: args.version_type,
-            },
-            message: args.dry_run ? 'Dry run completed' : (
-                developmentResult
-                    ? 'Package published successfully and working branch updated'
-                    : 'Package published successfully'
-            ),
-        };
-    } catch (error: any) {
         const formatted = formatErrorForMCP(error);
         const commandDetails = extractCommandErrorDetails(error);
 
@@ -643,193 +615,156 @@ async function executePublish(args: any, context: ToolExecutionContext): Promise
                 stderr: commandDetails.stderr,
                 exitCode: commandDetails.exitCode,
                 phase: commandDetails.phase,
+                files: commandDetails.files,
             },
+            logs: logs.length > 0 ? logs : undefined,
         };
     }
+}
+
+async function executeCommit(args: any, context: ToolExecutionContext): Promise<ToolResult> {
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsGit.commit(config),
+        (config, args) => {
+            if (!config.commit) {
+                config.commit = {};
+            }
+            config.commit.sendit = args.sendit || false;
+            config.commit.interactive = !args.sendit;
+            if (args.issue) {
+                config.commit.context = `GitHub Issue #${args.issue}`;
+            }
+            // Set reasoning level for commit operations (default: low for faster commits)
+            config.openaiReasoning = args.openaiReasoning || 'low';
+            config.commit.openaiReasoning = args.openaiReasoning || 'low';
+        },
+        (result, args, originalCwd) => ({
+            message: result,
+            directory: args.directory || originalCwd,
+            committed: args.sendit && !args.dry_run,
+        })
+    );
+}
+
+async function executeRelease(args: any, context: ToolExecutionContext): Promise<ToolResult> {
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsPublish.release(config),
+        (config, args) => {
+            if (!config.release) {
+                config.release = {};
+            }
+            config.release.from = args.from_tag;
+            config.release.to = args.to_tag;
+            config.release.interactive = false;
+        },
+        (result, args, originalCwd) => ({
+            releaseNotes: result,
+            directory: args.directory || originalCwd,
+            version: args.version,
+        })
+    );
+}
+
+async function executePublish(args: any, context: ToolExecutionContext): Promise<ToolResult> {
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsPublish.publish(config),
+        (config, args) => {
+            if (!config.publish) {
+                config.publish = {};
+            }
+            config.publish.targetVersion = args.version_type || 'patch';
+            config.publish.sendit = !args.dry_run;
+            config.publish.interactive = false;
+            config.publish.skipUserConfirmation = args.skip_tests || false;
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            versionType: args.version_type,
+        })
+    );
 }
 
 async function executeDevelopment(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.development) {
-            config.development = {};
-        }
-        if (args.target_version) {
-            config.development.targetVersion = args.target_version;
-        }
-        if (typeof args.tag_working_branch === 'boolean') {
-            config.development.tagWorkingBranch = args.tag_working_branch;
-        }
-        config.dryRun = args.dry_run || false;
-
-        const result = await CommandsPublish.development(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                targetVersion: args.target_version,
-            },
-            message: args.dry_run ? 'Dry run completed' : result,
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsPublish.development(config),
+        (config, args) => {
+            if (!config.development) {
+                config.development = {};
+            }
+            if (args.target_version) {
+                config.development.targetVersion = args.target_version;
+            }
+            if (typeof args.tag_working_branch === 'boolean') {
+                config.development.tagWorkingBranch = args.tag_working_branch;
+            }
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            targetVersion: args.target_version,
+        })
+    );
 }
 
 async function executePrecommit(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        config.dryRun = args.dry_run || false;
-
-        const result = await CommandsGit.precommit(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                fix: args.fix || false,
-            },
-            message: 'Precommit checks completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsGit.precommit(config),
+        (_config, _args) => {
+            // No command-specific config needed
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            fix: args.fix || false,
+        })
+    );
 }
 
 async function executeReview(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.review) {
-            config.review = {};
-        }
-        config.review.file = args.review_file;
-        config.review.sendit = !args.dry_run;
-        config.dryRun = args.dry_run || false;
-
-        const result = await CommandsGit.review(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                reviewResult: result,
-                directory: args.directory || originalCwd,
-                reviewFile: args.review_file,
-            },
-            message: args.dry_run ? 'Dry run completed' : 'Review processed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsGit.review(config),
+        (config, args) => {
+            if (!config.review) {
+                config.review = {};
+            }
+            config.review.file = args.review_file;
+            config.review.sendit = !args.dry_run;
+        },
+        (result, args, originalCwd) => ({
+            reviewResult: result,
+            directory: args.directory || originalCwd,
+            reviewFile: args.review_file,
+        })
+    );
 }
 
 async function executePull(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        const result = await CommandsGit.pull(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                pullResult: result,
-                directory: args.directory || originalCwd,
-                rebase: args.rebase || false,
-            },
-            message: 'Pull completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsGit.pull(config),
+        (_config, _args) => {
+            // No command-specific config needed
+        },
+        (result, args, originalCwd) => ({
+            pullResult: result,
+            directory: args.directory || originalCwd,
+            rebase: args.rebase || false,
+        })
+    );
 }
 
 // ============================================================================
@@ -837,352 +772,194 @@ async function executePull(args: any, context: ToolExecutionContext): Promise<To
 // ============================================================================
 
 async function executeTreeCommit(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.tree) {
-            config.tree = {};
-        }
-        config.tree.builtInCommand = 'commit';
-        if (args.packages) {
-            config.tree.packageArgument = args.packages.join(',');
-        }
-        if (!config.commit) {
-            config.commit = {};
-        }
-        config.commit.sendit = args.sendit || false;
-
-        const result = await CommandsTree.tree(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                packages: args.packages,
-            },
-            message: 'Tree commit completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.tree(config),
+        (config, args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            config.tree.builtInCommand = 'commit';
+            if (args.packages) {
+                config.tree.packageArgument = args.packages.join(',');
+            }
+            if (args.start_from) {
+                config.tree.startFrom = args.start_from;
+            }
+            if (!config.commit) {
+                config.commit = {};
+            }
+            config.commit.sendit = args.sendit || false;
+            // Set reasoning level for commit operations (default: low for faster commits)
+            config.openaiReasoning = args.openaiReasoning || 'low';
+            config.commit.openaiReasoning = args.openaiReasoning || 'low';
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            packages: args.packages,
+        })
+    );
 }
 
 async function executeTreePublish(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.tree) {
-            config.tree = {};
-        }
-        config.tree.builtInCommand = 'publish';
-        if (args.packages) {
-            config.tree.packageArgument = args.packages.join(',');
-        }
-        if (!config.publish) {
-            config.publish = {};
-        }
-        config.publish.targetVersion = args.version_type || 'patch';
-        config.dryRun = args.dry_run || false;
-
-        const result = await CommandsTree.tree(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                packages: args.packages,
-            },
-            message: args.dry_run ? 'Dry run completed' : 'Tree publish completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-                files: commandDetails.files,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.tree(config),
+        (config, args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            config.tree.builtInCommand = 'publish';
+            if (args.packages) {
+                config.tree.packageArgument = args.packages.join(',');
+            }
+            if (args.start_from) {
+                config.tree.startFrom = args.start_from;
+            }
+            if (args.continue) {
+                config.tree.continue = true;
+            }
+            if (args.cleanup) {
+                config.tree.cleanup = true;
+            }
+            if (!config.publish) {
+                config.publish = {};
+            }
+            config.publish.targetVersion = args.version_type || 'patch';
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            packages: args.packages,
+        })
+    );
 }
 
 async function executeTreePrecommit(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.tree) {
-            config.tree = {};
-        }
-        config.tree.builtInCommand = 'precommit';
-        if (args.packages) {
-            config.tree.packageArgument = args.packages.join(',');
-        }
-
-        const result = await CommandsTree.tree(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                packages: args.packages,
-            },
-            message: 'Tree precommit checks completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.tree(config),
+        (config, args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            config.tree.builtInCommand = 'precommit';
+            if (args.packages) {
+                config.tree.packageArgument = args.packages.join(',');
+            }
+            if (args.start_from) {
+                config.tree.startFrom = args.start_from;
+            }
+            if (args.fix) {
+                config.tree.fix = true;
+            }
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            packages: args.packages,
+        })
+    );
 }
 
 async function executeTreeLink(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.tree) {
-            config.tree = {};
-        }
-        config.tree.builtInCommand = 'link';
-        if (args.packages) {
-            config.tree.packageArgument = args.packages.join(',');
-        }
-
-        const result = await CommandsTree.tree(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                packages: args.packages,
-            },
-            message: 'Tree link completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.tree(config),
+        (config, args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            config.tree.builtInCommand = 'link';
+            if (args.packages) {
+                config.tree.packageArgument = args.packages.join(',');
+            }
+            if (args.start_from) {
+                config.tree.startFrom = args.start_from;
+            }
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            packages: args.packages,
+        })
+    );
 }
 
 async function executeTreeUnlink(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.tree) {
-            config.tree = {};
-        }
-        config.tree.builtInCommand = 'unlink';
-        if (args.packages) {
-            config.tree.packageArgument = args.packages.join(',');
-        }
-
-        const result = await CommandsTree.tree(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                packages: args.packages,
-            },
-            message: 'Tree unlink completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.tree(config),
+        (config, args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            config.tree.builtInCommand = 'unlink';
+            if (args.packages) {
+                config.tree.packageArgument = args.packages.join(',');
+            }
+            if (args.start_from) {
+                config.tree.startFrom = args.start_from;
+            }
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            packages: args.packages,
+        })
+    );
 }
 
 async function executeTreeUpdates(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.tree) {
-            config.tree = {};
-        }
-        if (args.packages) {
-            config.tree.packageArgument = args.packages.join(',');
-        }
-
-        const result = await CommandsTree.updates(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                updates: result,
-                directory: args.directory || originalCwd,
-                packages: args.packages,
-            },
-            message: 'Tree updates check completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.updates(config),
+        (config, args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            if (args.packages) {
+                config.tree.packageArgument = args.packages.join(',');
+            }
+            if (args.start_from) {
+                config.tree.startFrom = args.start_from;
+            }
+        },
+        (result, args, originalCwd) => ({
+            updates: result,
+            directory: args.directory || originalCwd,
+            packages: args.packages,
+        })
+    );
 }
 
 async function executeTreePull(args: any, context: ToolExecutionContext): Promise<ToolResult> {
-    try {
-        const originalCwd = process.cwd();
-        if (args.directory) {
-            process.chdir(args.directory);
-        }
-
-        const config = createConfig(args, context);
-        if (!config.tree) {
-            config.tree = {};
-        }
-        config.tree.builtInCommand = 'pull';
-        // Note: The tree command doesn't directly support rebase flag,
-        // but the individual git pull commands called might
-
-        const result = await CommandsTree.tree(config);
-
-        if (args.directory) {
-            process.chdir(originalCwd);
-        }
-
-        return {
-            success: true,
-            data: {
-                result: result,
-                directory: args.directory || originalCwd,
-                rebase: args.rebase || false,
-            },
-            message: 'Tree pull completed successfully',
-        };
-    } catch (error: any) {
-        const formatted = formatErrorForMCP(error);
-        const commandDetails = extractCommandErrorDetails(error);
-
-        return {
-            success: false,
-            error: formatted.message,
-            context: formatted.context,
-            recovery: formatted.recovery,
-            details: {
-                stdout: commandDetails.stdout,
-                stderr: commandDetails.stderr,
-                exitCode: commandDetails.exitCode,
-            },
-        };
-    }
+    return executeCommand(
+        args,
+        context,
+        (config) => CommandsTree.tree(config),
+        (config, args) => {
+            if (!config.tree) {
+                config.tree = {};
+            }
+            config.tree.builtInCommand = 'pull';
+            if (args.start_from) {
+                config.tree.startFrom = args.start_from;
+            }
+            // Note: The tree command doesn't directly support rebase flag,
+            // but the individual git pull commands called might
+        },
+        (result, args, originalCwd) => ({
+            result,
+            directory: args.directory || originalCwd,
+            rebase: args.rebase || false,
+        })
+    );
 }

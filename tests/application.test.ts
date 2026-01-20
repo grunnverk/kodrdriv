@@ -85,7 +85,9 @@ vi.mock('../src/constants', () => ({
     COMMAND_VERSIONS: 'versions',
     COMMAND_UPDATES: 'updates',
     DEFAULT_CONFIG_DIR: '.kodrdriv',
-    VERSION: '0.0.52-test'
+    VERSION: '0.0.52-test',
+    BUILD_HOSTNAME: 'test-host',
+    BUILD_TIMESTAMP: '2026-01-01T00:00:00.000Z'
 }));
 
 vi.mock('../src/types', () => ({
@@ -716,7 +718,8 @@ describe('Application module', () => {
         it('should display version information', async () => {
             await Application.runApplication();
 
-            expect(mockLogger.info).toHaveBeenCalledWith('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | Status: starting', '0.0.52-test');
+            expect(mockLogger.info).toHaveBeenCalledWith('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | BuildHost: %s | BuildTime: %s | Status: starting',
+                '0.0.52-test', expect.any(String), expect.any(String));
         });
 
         it('should handle command execution errors that are not UserCancellationError', async () => {

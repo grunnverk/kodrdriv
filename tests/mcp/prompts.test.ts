@@ -1,23 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { getPrompts, getPrompt } from '../../src/mcp/prompts.js';
+import { getPrompts, getPrompt } from '../../src/mcp/prompts/index.js';
 
 describe('MCP Prompts', () => {
     describe('getPrompts', () => {
         it('should return array of prompts', () => {
             const prompts = getPrompts();
             expect(Array.isArray(prompts)).toBe(true);
-            expect(prompts).toHaveLength(6);
+            expect(prompts).toHaveLength(4);
         });
 
         it('should have all expected prompts', () => {
             const prompts = getPrompts();
             const expectedPrompts = [
                 'fix_and_commit',
-                'prepare_release',
-                'monorepo_publish',
+                'full_publish',
                 'dependency_update',
-                'smart_merge',
-                'issue_from_review',
+                'check_development',
             ];
 
             expectedPrompts.forEach(name => {
@@ -46,14 +44,8 @@ describe('MCP Prompts', () => {
             expect(messages[0].content.type).toBe('text');
         });
 
-        it('should return messages for prepare_release', async () => {
-            const messages = await getPrompt('prepare_release', { version_type: 'minor' });
-            expect(Array.isArray(messages)).toBe(true);
-            expect(messages[0].content.text).toContain('minor');
-        });
-
-        it('should return messages for monorepo_publish', async () => {
-            const messages = await getPrompt('monorepo_publish', {});
+        it('should return messages for full_publish', async () => {
+            const messages = await getPrompt('full_publish', {});
             expect(Array.isArray(messages)).toBe(true);
             expect(messages[0].content.text).toContain('monorepo');
         });
@@ -64,8 +56,8 @@ describe('MCP Prompts', () => {
         });
 
         it('should use provided arguments', async () => {
-            const messages = await getPrompt('smart_merge', { branch: 'feature-x' });
-            expect(messages[0].content.text).toContain('feature-x');
+            const messages = await getPrompt('full_publish', { packages: 'package-a,package-b' });
+            expect(messages[0].content.text).toContain('package-a,package-b');
         });
     });
 });
