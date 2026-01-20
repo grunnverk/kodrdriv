@@ -52,10 +52,19 @@ export function removeUndefinedValues(obj: any): any {
 }
 
 async function main() {
+    // Mark that we're running as MCP server - this prevents child processes from using stdio: 'inherit'
+    // Child processes should use stdio: 'pipe' and output should go through the logger
+    process.env.KODRDRIV_MCP_SERVER = 'true';
+
     // Disable console logging in MCP server mode to prevent stdout/stderr pollution
     // Console output interferes with MCP protocol messages over stdio
+    // The KODRDRIV_MCP_SERVER env var is already set above, which will prevent
+    // createTransports from adding console transports. But we also remove any
+    // existing console transports that might have been added before the env var was set.
     const logger = getLogger();
-    const transports = (logger as any).transports || [];
+
+    // Remove all console transports - iterate over a copy of the array since we're modifying it
+    const transports = [...((logger as any).transports || [])];
     for (const transport of transports) {
         if (transport instanceof winston.transports.Console) {
             logger.remove(transport);
@@ -420,9 +429,14 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
-    // eslint-disable-next-line no-console
-    console.error('KodrDriv MCP server started');
+    // Do NOT write to console in MCP server mode - it interferes with the protocol
+    // All output should go through the logger and be captured via logCapture
+    // The server is ready when connect() resolves
 }
 
-// eslint-disable-next-line no-console
-main().catch(console.error);
+// Handle errors silently in MCP mode - errors should be sent via MCP protocol, not stderr
+main().catch((_error) => {
+    // In MCP mode, we can't write to stderr, so we just exit with error code
+    // The error will be visible in the MCP client logs if the server fails to start
+    process.exit(1);
+});

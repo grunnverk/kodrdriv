@@ -39,88 +39,94 @@ const generateDebugLogFilename = () => {
 const createTransports = (level: string) => {
     const transports: winston.transport[] = [];
 
-    // Always add console transport for info level and above
-    if (level === 'info') {
-        transports.push(
-            new winston.transports.Console({
-                format: winston.format.combine(
-                    winston.format.colorize(),
-                    winston.format.printf(({ level, message, dryRun }): string => {
-                        const dryRunPrefix = dryRun ? '🔍 DRY RUN: ' : '';
-                        // For info level messages, don't show the level prefix
-                        if (level.includes('info')) {
-                            return `${dryRunPrefix}${String(message)}`;
-                        }
-                        // For warn, error, etc., show the level prefix
-                        return `${level}: ${dryRunPrefix}${String(message)}`;
-                    })
-                )
-            })
-        );
-    } else {
-        // For debug/verbose levels, add console transport that shows info and above
-        transports.push(
-            new winston.transports.Console({
-                level: 'info', // Show info, warn, and error on console
-                format: winston.format.combine(
-                    winston.format.colorize(),
-                    winston.format.printf(({ timestamp, level, message, dryRun, ...meta }): string => {
-                        // For info level messages, use simpler format without timestamp
-                        if (level.includes('info')) {
-                            const dryRunPrefix = dryRun ? '🔍 DRY RUN: ' : '';
-                            return `${dryRunPrefix}${String(message)}`;
-                        }
+    // When running as MCP server, NEVER add console transports as they interfere with the protocol
+    // All output must go through log capture mechanism instead
+    const isMcpServer = process.env.KODRDRIV_MCP_SERVER === 'true';
 
-                        // Filter out winston internal metadata
-                        const filteredMeta = Object.keys(meta).reduce((acc, key) => {
-                            if (!['level', 'message', 'timestamp', 'dryRun', 'service', 'splat', 'Symbol(level)', 'Symbol(message)'].includes(key)) {
-                                acc[key] = meta[key];
-                            }
-                            return acc;
-                        }, {} as Record<string, any>);
-
-                        const metaStr = Object.keys(filteredMeta).length ? ` ${JSON.stringify(filteredMeta, null, 2)}` : '';
-                        const dryRunPrefix = dryRun ? '🔍 DRY RUN: ' : '';
-                        return `${timestamp} ${level}: ${dryRunPrefix}${String(message)}${metaStr}`;
-                    })
-                )
-            })
-        );
-
-        // Add file transport for debug levels (debug and silly)
-        if (level === 'debug' || level === 'silly') {
-            ensureDebugDirectory();
-
-            const debugLogPath = path.join(DEFAULT_OUTPUT_DIRECTORY, 'debug', generateDebugLogFilename());
-
+    if (!isMcpServer) {
+        // Always add console transport for info level and above (only when NOT in MCP mode)
+        if (level === 'info') {
             transports.push(
-                new winston.transports.File({
-                    filename: debugLogPath,
-                    level: 'debug', // Capture debug and above in the file
+                new winston.transports.Console({
                     format: winston.format.combine(
-                        winston.format.timestamp({ format: DATE_FORMAT_YEAR_MONTH_DAY_HOURS_MINUTES_SECONDS_MILLISECONDS }),
-                        winston.format.errors({ stack: true }),
-                        winston.format.splat(),
-                        winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
-                            // Filter out winston internal metadata and properly format remaining meta
+                        winston.format.colorize(),
+                        winston.format.printf(({ level, message, dryRun }): string => {
+                            const dryRunPrefix = dryRun ? '🔍 DRY RUN: ' : '';
+                            // For info level messages, don't show the level prefix
+                            if (level.includes('info')) {
+                                return `${dryRunPrefix}${String(message)}`;
+                            }
+                            // For warn, error, etc., show the level prefix
+                            return `${level}: ${dryRunPrefix}${String(message)}`;
+                        })
+                    )
+                })
+            );
+        } else {
+            // For debug/verbose levels, add console transport that shows info and above
+            transports.push(
+                new winston.transports.Console({
+                    level: 'info', // Show info, warn, and error on console
+                    format: winston.format.combine(
+                        winston.format.colorize(),
+                        winston.format.printf(({ timestamp, level, message, dryRun, ...meta }): string => {
+                            // For info level messages, use simpler format without timestamp
+                            if (level.includes('info')) {
+                                const dryRunPrefix = dryRun ? '🔍 DRY RUN: ' : '';
+                                return `${dryRunPrefix}${String(message)}`;
+                            }
+
+                            // Filter out winston internal metadata
                             const filteredMeta = Object.keys(meta).reduce((acc, key) => {
-                                // Skip internal winston fields
-                                if (!['level', 'message', 'timestamp', 'splat', 'Symbol(level)', 'Symbol(message)'].includes(key)) {
+                                if (!['level', 'message', 'timestamp', 'dryRun', 'service', 'splat', 'Symbol(level)', 'Symbol(message)'].includes(key)) {
                                     acc[key] = meta[key];
                                 }
                                 return acc;
                             }, {} as Record<string, any>);
 
-                            const metaStr = Object.keys(filteredMeta).length
-                                ? ` ${JSON.stringify(filteredMeta, null, 2)}`
-                                : '';
-                            const serviceStr = service ? ` [${service}]` : '';
-                            return `${timestamp}${serviceStr} ${level}: ${message}${metaStr}`;
+                            const metaStr = Object.keys(filteredMeta).length ? ` ${JSON.stringify(filteredMeta, null, 2)}` : '';
+                            const dryRunPrefix = dryRun ? '🔍 DRY RUN: ' : '';
+                            return `${timestamp} ${level}: ${dryRunPrefix}${String(message)}${metaStr}`;
                         })
                     )
                 })
             );
         }
+    }
+
+    // Add file transport for debug levels (debug and silly)
+    if (level === 'debug' || level === 'silly') {
+        ensureDebugDirectory();
+
+        const debugLogPath = path.join(DEFAULT_OUTPUT_DIRECTORY, 'debug', generateDebugLogFilename());
+
+        transports.push(
+            new winston.transports.File({
+                filename: debugLogPath,
+                level: 'debug', // Capture debug and above in the file
+                format: winston.format.combine(
+                    winston.format.timestamp({ format: DATE_FORMAT_YEAR_MONTH_DAY_HOURS_MINUTES_SECONDS_MILLISECONDS }),
+                    winston.format.errors({ stack: true }),
+                    winston.format.splat(),
+                    winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
+                        // Filter out winston internal metadata and properly format remaining meta
+                        const filteredMeta = Object.keys(meta).reduce((acc, key) => {
+                            // Skip internal winston fields
+                            if (!['level', 'message', 'timestamp', 'splat', 'Symbol(level)', 'Symbol(message)'].includes(key)) {
+                                acc[key] = meta[key];
+                            }
+                            return acc;
+                        }, {} as Record<string, any>);
+
+                        const metaStr = Object.keys(filteredMeta).length
+                            ? ` ${JSON.stringify(filteredMeta, null, 2)}`
+                            : '';
+                        const serviceStr = service ? ` [${service}]` : '';
+                        return `${timestamp}${serviceStr} ${level}: ${message}${metaStr}`;
+                    })
+                )
+            })
+        );
     }
 
     return transports;

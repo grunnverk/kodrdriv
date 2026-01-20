@@ -14,6 +14,7 @@ import * as CommandsPublish from '@eldrforge/commands-publish';
 import { formatErrorForMCP, extractCommandErrorDetails } from '@eldrforge/core';
 import { VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from '../constants.js';
 import { installLogCapture } from './logCapture.js';
+import { scanForPackageJsonFiles, buildDependencyGraph, topologicalSort } from '@eldrforge/tree-core';
 /* eslint-enable import/extensions */
 
 /**
@@ -540,6 +541,139 @@ function createConfig(args: any, _context: ToolExecutionContext): any {
 }
 
 /**
+ * Helper function to discover packages for tree operations
+ * Returns package count and build order for better progress tracking
+ */
+async function discoverTreePackages(
+    directory: string,
+    packages?: string[],
+    startFrom?: string
+): Promise<{ total: number; buildOrder: string[]; message: string } | null> {
+    try {
+        // Send status update about discovering packages
+        const packageJsonPaths = await scanForPackageJsonFiles(directory);
+
+        if (packageJsonPaths.length === 0) {
+            return null;
+        }
+
+        // Build dependency graph to get build order
+        const dependencyGraph = await buildDependencyGraph(packageJsonPaths);
+        let buildOrder = topologicalSort(dependencyGraph);
+
+        // Filter packages if specific packages are requested
+        if (packages && packages.length > 0) {
+            const packageSet = new Set(packages);
+            buildOrder = buildOrder.filter(pkg => packageSet.has(pkg));
+        }
+
+        // Filter by startFrom if specified
+        if (startFrom) {
+            const startIndex = buildOrder.indexOf(startFrom);
+            if (startIndex >= 0) {
+                buildOrder = buildOrder.slice(startIndex);
+            }
+        }
+
+        return {
+            total: buildOrder.length,
+            buildOrder,
+            message: `Found ${buildOrder.length} package${buildOrder.length !== 1 ? 's' : ''} to process`,
+        };
+    } catch {
+        // If discovery fails, return null to fall back to default behavior
+        return null;
+    }
+}
+
+/**
+ * Extract package progress information from log messages
+ * Looks for patterns like "[1/13] package-name: Running..." or similar
+ */
+function extractPackageProgress(logs: string[], totalPackages: number | null): {
+    currentPackage: string | null;
+    currentIndex: number | null;
+    completedCount: number;
+    message: string;
+} {
+    if (logs.length === 0) {
+        return {
+            currentPackage: null,
+            currentIndex: null,
+            completedCount: 0,
+            message: 'Processing...',
+        };
+    }
+
+    // Look for package execution patterns in logs
+    // Pattern: "[N/TOTAL] package-name: Running command..." or "[N/TOTAL] package-name: ..."
+    // Also handles emoji prefixes like "ℹ️ [1/13] package-name: ..."
+    const packagePattern = /(?:[^\s]+\s+)?\[(\d+)\/(\d+)\]\s+([^:]+):\s*(.+)/;
+    
+    // Also look for completion patterns
+    const completionPattern = /(?:✅|✓|Success|completed|finished).*?\[(\d+)\/(\d+)\]/i;
+    
+    let currentPackage: string | null = null;
+    let currentIndex: number | null = null;
+    let completedCount = 0;
+    
+    // Scan logs from newest to oldest to find the most recent package being processed
+    for (let i = logs.length - 1; i >= 0; i--) {
+        const log = logs[i];
+        const packageMatch = log.match(packagePattern);
+        
+        if (packageMatch) {
+            const index = parseInt(packageMatch[1], 10);
+            const packageName = packageMatch[3].trim();
+            const action = packageMatch[4].trim();
+            
+            // Use the most recent package we find
+            if (!currentPackage) {
+                currentPackage = packageName;
+                currentIndex = index;
+            }
+            
+            // Check if this looks like a completion
+            if (action.toLowerCase().includes('completed') || 
+                action.toLowerCase().includes('success') ||
+                action.toLowerCase().includes('finished') ||
+                log.includes('✅') ||
+                log.includes('✓')) {
+                completedCount = Math.max(completedCount, index);
+            }
+        }
+        
+        // Also check for completion patterns
+        const completionMatch = log.match(completionPattern);
+        if (completionMatch) {
+            const index = parseInt(completionMatch[1], 10);
+            completedCount = Math.max(completedCount, index);
+        }
+    }
+    
+    // Build progress message
+    let message: string;
+    if (currentPackage && currentIndex !== null && totalPackages !== null) {
+        message = `Processing ${currentPackage} (${currentIndex}/${totalPackages})`;
+    } else if (currentPackage) {
+        message = `Processing ${currentPackage}...`;
+    } else if (totalPackages !== null) {
+        message = `Found ${totalPackages} package${totalPackages !== 1 ? 's' : ''} to process`;
+    } else {
+        // Fallback: use the latest log message, cleaned up
+        const latestLog = logs[logs.length - 1];
+        message = latestLog.replace(/^[^\s]+\s/, '').trim() || 'Processing...';
+    }
+    
+    return {
+        currentPackage,
+        currentIndex,
+        completedCount,
+        message,
+    };
+}
+
+/**
  * Generic command executor - wraps command execution with common patterns
  * Handles directory changes, config creation, log capturing, and error formatting
  */
@@ -548,7 +682,8 @@ async function executeCommand<T>(
     context: ToolExecutionContext,
     commandFn: (config: any) => Promise<T>,
     configBuilder?: (config: any, args: any) => void,
-    resultBuilder?: (result: T, args: any, originalCwd: string) => any
+    resultBuilder?: (result: T, args: any, originalCwd: string) => any,
+    getInitialStatus?: (args: any, directory: string) => Promise<{ total: number; message: string } | null>
 ): Promise<ToolResult> {
     const originalCwd = process.cwd();
 
@@ -558,17 +693,33 @@ async function executeCommand<T>(
     // Set up progress polling if callback is provided
     let progressInterval: NodeJS.Timeout | null = null;
     let lastLogCount = 0;
-    let progressCounter = 0;
+    let totalCount: number | null = null;
+    let initialMessage = 'Starting command...';
+
+    // Discover initial status for tree operations
+    if (getInitialStatus) {
+        const targetDir = args.directory || originalCwd;
+        try {
+            const initialStatus = await getInitialStatus(args, targetDir);
+            if (initialStatus) {
+                totalCount = initialStatus.total;
+                initialMessage = initialStatus.message;
+            }
+        } catch {
+            // If discovery fails, continue with default behavior
+        }
+    }
 
     // Set up progress reporting if sendNotification is available
     if (context.sendNotification && context.progressToken) {
-        // Send initial progress
+        // Send initial progress with discovered total if available
         void context.sendNotification({
             method: 'notifications/progress',
             params: {
                 progressToken: context.progressToken,
                 progress: 0,
-                message: 'Starting command...',
+                total: totalCount ?? undefined,
+                message: initialMessage,
             },
         }).catch(() => {
             // Ignore errors in progress notifications
@@ -581,23 +732,37 @@ async function executeCommand<T>(
             lastLogCount = logs.length;
 
             if (newLogs.length > 0 || logs.length > 0) {
-                progressCounter += newLogs.length;
-                const latestMessage = newLogs.length > 0
-                    ? newLogs[newLogs.length - 1]
-                    : logs.length > 0
-                        ? logs[logs.length - 1]
-                        : 'Processing...';
-
-                // Extract a clean message (remove emoji prefixes)
-                const cleanMessage = latestMessage.replace(/^[^\s]+\s/, '').trim() || 'Processing...';
+                // Extract package progress information from logs
+                const packageProgress = extractPackageProgress(logs, totalCount);
+                
+                // Use completed count if available, otherwise use log counter
+                const progress = packageProgress.completedCount > 0 
+                    ? packageProgress.completedCount 
+                    : (packageProgress.currentIndex ?? progressCounter + newLogs.length);
 
                 // Send progress notification (fire and forget - don't block execution)
+                // Include total if we discovered it upfront
                 void context.sendNotification!({
                     method: 'notifications/progress',
                     params: {
                         progressToken: context.progressToken!,
-                        progress: progressCounter,
-                        message: cleanMessage,
+                        progress,
+                        total: totalCount ?? undefined,
+                        message: packageProgress.message,
+                    },
+                }).catch(() => {
+                    // Ignore errors in progress notifications
+                });
+            } else if (totalCount !== null) {
+                // Even if no new logs, send periodic heartbeat with current status
+                // This prevents the UI from showing stale "Starting command..." for too long
+                void context.sendNotification!({
+                    method: 'notifications/progress',
+                    params: {
+                        progressToken: context.progressToken!,
+                        progress: 0,
+                        total: totalCount,
+                        message: initialMessage,
                     },
                 }).catch(() => {
                     // Ignore errors in progress notifications
@@ -606,7 +771,7 @@ async function executeCommand<T>(
         }, 2000); // Poll every 2 seconds
     } else if (context.progressCallback) {
         // Fallback to progress callback if sendNotification isn't available
-        void Promise.resolve(context.progressCallback(0, null, 'Starting command...', [])).catch(() => {
+        void Promise.resolve(context.progressCallback(0, totalCount ?? null, initialMessage, [])).catch(() => {
             // Ignore errors in progress callback
         });
 
@@ -617,24 +782,29 @@ async function executeCommand<T>(
             lastLogCount = logs.length;
 
             if (newLogs.length > 0 || logs.length > 0) {
-                progressCounter += newLogs.length;
-                const latestMessage = newLogs.length > 0
-                    ? newLogs[newLogs.length - 1]
-                    : logs.length > 0
-                        ? logs[logs.length - 1]
-                        : 'Processing...';
-
-                // Extract a clean message (remove emoji prefixes)
-                const cleanMessage = latestMessage.replace(/^[^\s]+\s/, '').trim() || 'Processing...';
+                // Extract package progress information from logs
+                const packageProgress = extractPackageProgress(logs, totalCount);
+                
+                // Use completed count if available, otherwise use log counter
+                const progress = packageProgress.completedCount > 0 
+                    ? packageProgress.completedCount 
+                    : (packageProgress.currentIndex ?? progressCounter + newLogs.length);
 
                 // Call progress callback (fire and forget - don't block execution)
                 void Promise.resolve(
                     context.progressCallback!(
-                        progressCounter,
-                        null,
-                        cleanMessage,
+                        progress,
+                        totalCount ?? null,
+                        packageProgress.message,
                         newLogs.length > 0 ? newLogs : undefined
                     )
+                ).catch(() => {
+                    // Ignore errors in progress callback
+                });
+            } else if (totalCount !== null) {
+                // Even if no new logs, send periodic heartbeat with current status
+                void Promise.resolve(
+                    context.progressCallback!(0, totalCount, initialMessage, undefined)
                 ).catch(() => {
                     // Ignore errors in progress callback
                 });
@@ -676,26 +846,36 @@ async function executeCommand<T>(
 
         // Send final progress update
         if (context.sendNotification && context.progressToken) {
-            const finalMessage = logs.length > 0
-                ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
-                : 'Command completed successfully';
+            const packageProgress = extractPackageProgress(logs, totalCount);
+            const finalMessage = packageProgress.message || 
+                (logs.length > 0
+                    ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
+                    : 'Command completed successfully');
+            const finalProgress = packageProgress.completedCount > 0 
+                ? packageProgress.completedCount 
+                : (totalCount ?? logs.length);
             void context.sendNotification({
                 method: 'notifications/progress',
                 params: {
                     progressToken: context.progressToken,
-                    progress: logs.length,
-                    total: logs.length,
+                    progress: finalProgress,
+                    total: totalCount ?? finalProgress,
                     message: finalMessage,
                 },
             }).catch(() => {
                 // Ignore errors in progress notifications
             });
         } else if (context.progressCallback) {
-            const finalMessage = logs.length > 0
-                ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
-                : 'Command completed successfully';
+            const packageProgress = extractPackageProgress(logs, totalCount);
+            const finalMessage = packageProgress.message || 
+                (logs.length > 0
+                    ? logs[logs.length - 1].replace(/^[^\s]+\s/, '').trim()
+                    : 'Command completed successfully');
+            const finalProgress = packageProgress.completedCount > 0 
+                ? packageProgress.completedCount 
+                : (totalCount ?? logs.length);
             void Promise.resolve(
-                context.progressCallback(logs.length, logs.length, finalMessage, logs)
+                context.progressCallback(finalProgress, totalCount ?? finalProgress, finalMessage, logs)
             ).catch(() => {
                 // Ignore errors in progress callback
             });
@@ -962,6 +1142,21 @@ async function executeTreeCommit(args: any, context: ToolExecutionContext): Prom
                 data.packages = args.packages;
             }
             return data;
+        },
+        async (args, directory) => {
+            // Discover packages upfront for better progress tracking
+            const discovery = await discoverTreePackages(
+                directory,
+                args.packages,
+                args.start_from
+            );
+            if (discovery) {
+                return {
+                    total: discovery.total,
+                    message: discovery.message,
+                };
+            }
+            return null;
         }
     );
 }
@@ -1002,6 +1197,21 @@ async function executeTreePublish(args: any, context: ToolExecutionContext): Pro
                 data.packages = args.packages;
             }
             return data;
+        },
+        async (args, directory) => {
+            // Discover packages upfront for better progress tracking
+            const discovery = await discoverTreePackages(
+                directory,
+                args.packages,
+                args.start_from
+            );
+            if (discovery) {
+                return {
+                    total: discovery.total,
+                    message: discovery.message,
+                };
+            }
+            return null;
         }
     );
 }
@@ -1035,6 +1245,21 @@ async function executeTreePrecommit(args: any, context: ToolExecutionContext): P
                 data.packages = args.packages;
             }
             return data;
+        },
+        async (args, directory) => {
+            // Discover packages upfront for better progress tracking
+            const discovery = await discoverTreePackages(
+                directory,
+                args.packages,
+                args.start_from
+            );
+            if (discovery) {
+                return {
+                    total: discovery.total,
+                    message: discovery.message,
+                };
+            }
+            return null;
         }
     );
 }
@@ -1065,6 +1290,21 @@ async function executeTreeLink(args: any, context: ToolExecutionContext): Promis
                 data.packages = args.packages;
             }
             return data;
+        },
+        async (args, directory) => {
+            // Discover packages upfront for better progress tracking
+            const discovery = await discoverTreePackages(
+                directory,
+                args.packages,
+                args.start_from
+            );
+            if (discovery) {
+                return {
+                    total: discovery.total,
+                    message: discovery.message,
+                };
+            }
+            return null;
         }
     );
 }
@@ -1095,6 +1335,21 @@ async function executeTreeUnlink(args: any, context: ToolExecutionContext): Prom
                 data.packages = args.packages;
             }
             return data;
+        },
+        async (args, directory) => {
+            // Discover packages upfront for better progress tracking
+            const discovery = await discoverTreePackages(
+                directory,
+                args.packages,
+                args.start_from
+            );
+            if (discovery) {
+                return {
+                    total: discovery.total,
+                    message: discovery.message,
+                };
+            }
+            return null;
         }
     );
 }
@@ -1119,7 +1374,22 @@ async function executeTreeUpdates(args: any, context: ToolExecutionContext): Pro
             updates: result,
             directory: args.directory || originalCwd,
             packages: args.packages,
-        })
+        }),
+        async (args, directory) => {
+            // Discover packages upfront for better progress tracking
+            const discovery = await discoverTreePackages(
+                directory,
+                args.packages,
+                args.start_from
+            );
+            if (discovery) {
+                return {
+                    total: discovery.total,
+                    message: discovery.message,
+                };
+            }
+            return null;
+        }
     );
 }
 
@@ -1143,6 +1413,21 @@ async function executeTreePull(args: any, context: ToolExecutionContext): Promis
             result,
             directory: args.directory || originalCwd,
             rebase: args.rebase || false,
-        })
+        }),
+        async (args, directory) => {
+            // Discover packages upfront for better progress tracking
+            const discovery = await discoverTreePackages(
+                directory,
+                undefined,
+                args.start_from
+            );
+            if (discovery) {
+                return {
+                    total: discovery.total,
+                    message: discovery.message,
+                };
+            }
+            return null;
+        }
     );
 }
