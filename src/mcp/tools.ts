@@ -404,7 +404,8 @@ export const tools: McpTool[] = [
         name: 'kodrdriv_tree_precommit',
         description:
             'Run precommit checks across all packages in monorepo. ' +
-            'Executes linting, tests, and builds in dependency order.',
+            'Executes linting, tests, and builds in dependency order. ' +
+            'Use parallel=true for faster execution on large monorepos.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -425,6 +426,10 @@ export const tools: McpTool[] = [
                     type: 'string',
                     description: 'Package name or directory to start from',
                 },
+                parallel: {
+                    type: 'boolean',
+                    description: 'Execute packages in parallel (faster for large monorepos, default: false)',
+                },
             },
         },
     },
@@ -432,7 +437,8 @@ export const tools: McpTool[] = [
         name: 'kodrdriv_tree_link',
         description:
             'Link local packages for development. ' +
-            'Sets up workspace links between packages for local testing.',
+            'Sets up workspace links between packages for local testing. ' +
+            'Use parallel=true for faster execution on large monorepos.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -448,6 +454,10 @@ export const tools: McpTool[] = [
                 start_from: {
                     type: 'string',
                     description: 'Package name or directory to start from',
+                },
+                parallel: {
+                    type: 'boolean',
+                    description: 'Execute packages in parallel (faster for large monorepos, default: false)',
                 },
             },
         },
@@ -471,7 +481,8 @@ export const tools: McpTool[] = [
         name: 'kodrdriv_tree_unlink',
         description:
             'Remove workspace links and restore npm registry versions. ' +
-            'Unlinks local packages and reinstalls from registry.',
+            'Unlinks local packages and reinstalls from registry. ' +
+            'Use parallel=true for faster execution on large monorepos.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -487,6 +498,10 @@ export const tools: McpTool[] = [
                 start_from: {
                     type: 'string',
                     description: 'Package name or directory to start from',
+                },
+                parallel: {
+                    type: 'boolean',
+                    description: 'Execute packages in parallel (faster for large monorepos, default: false)',
                 },
             },
         },
@@ -580,6 +595,57 @@ function createConfig(args: any, _context: ToolExecutionContext): any {
         discoveredConfigDirs: [],
         resolvedConfigDirs: [],
     };
+}
+
+/**
+ * Set up the onPackageFocus callback to send progress notifications
+ */
+function setupPackageFocusCallback(config: any, context: ToolExecutionContext): void {
+    if (!config.tree) {
+        config.tree = {};
+    }
+
+    // Only set up callback if we have notification capability
+    if (context.sendNotification && context.progressToken) {
+        config.tree.onPackageFocus = async (packageName: string, index: number, total: number) => {
+            const progress = index + 1; // Convert to 1-based for display
+            const message = `Processing ${packageName} (${progress}/${total})`;
+
+            // Build params object without undefined values to prevent JSON serialization issues
+            const progressParams: Record<string, any> = {
+                progressToken: context.progressToken!,
+                progress: Math.floor(progress),
+                total: Math.floor(total),
+                message,
+            };
+
+            // Send progress notification (fire and forget - don't block execution)
+            void context.sendNotification!({
+                method: 'notifications/progress',
+                params: progressParams as any,
+            }).catch(() => {
+                // Ignore errors in progress notifications
+            });
+        };
+    } else if (context.progressCallback) {
+        // Fallback to progress callback if sendNotification isn't available
+        config.tree.onPackageFocus = async (packageName: string, index: number, total: number) => {
+            const progress = index + 1; // Convert to 1-based for display
+            const message = `Processing ${packageName} (${progress}/${total})`;
+
+            // Call progress callback (fire and forget - don't block execution)
+            void Promise.resolve(
+                context.progressCallback!(
+                    Math.floor(progress),
+                    Math.floor(total),
+                    message,
+                    undefined
+                )
+            ).catch(() => {
+                // Ignore errors in progress callback
+            });
+        };
+    }
 }
 
 /**
@@ -1255,6 +1321,8 @@ async function executeTreeCommit(args: any, context: ToolExecutionContext): Prom
             // Set reasoning level for commit operations (default: low for faster commits)
             config.openaiReasoning = args.openaiReasoning || 'low';
             config.commit.openaiReasoning = args.openaiReasoning || 'low';
+            // Set up progress callback for package focus
+            setupPackageFocusCallback(config, context);
         },
         (result, args, originalCwd) => {
             const data: any = {
@@ -1310,6 +1378,8 @@ async function executeTreePublish(args: any, context: ToolExecutionContext): Pro
                 config.publish = {};
             }
             config.publish.targetVersion = args.version_type || 'patch';
+            // Set up progress callback for package focus
+            setupPackageFocusCallback(config, context);
         },
         (result, args, originalCwd) => {
             const data: any = {
@@ -1358,6 +1428,11 @@ async function executeTreePrecommit(args: any, context: ToolExecutionContext): P
             if (args.fix) {
                 config.tree.fix = true;
             }
+            if (args.parallel) {
+                config.tree.parallel = true;
+            }
+            // Set up progress callback for package focus
+            setupPackageFocusCallback(config, context);
         },
         (result, args, originalCwd) => {
             const data: any = {
@@ -1403,6 +1478,11 @@ async function executeTreeLink(args: any, context: ToolExecutionContext): Promis
             if (args.start_from) {
                 config.tree.startFrom = args.start_from;
             }
+            if (args.parallel) {
+                config.tree.parallel = true;
+            }
+            // Set up progress callback for package focus
+            setupPackageFocusCallback(config, context);
         },
         (result, args, originalCwd) => {
             const data: any = {
@@ -1467,6 +1547,11 @@ async function executeTreeUnlink(args: any, context: ToolExecutionContext): Prom
             if (args.start_from) {
                 config.tree.startFrom = args.start_from;
             }
+            if (args.parallel) {
+                config.tree.parallel = true;
+            }
+            // Set up progress callback for package focus
+            setupPackageFocusCallback(config, context);
         },
         (result, args, originalCwd) => {
             const data: any = {
@@ -1550,6 +1635,8 @@ async function executeTreePull(args: any, context: ToolExecutionContext): Promis
             }
             // Note: The tree command doesn't directly support rebase flag,
             // but the individual git pull commands called might
+            // Set up progress callback for package focus
+            setupPackageFocusCallback(config, context);
         },
         (result, args, originalCwd) => ({
             result,

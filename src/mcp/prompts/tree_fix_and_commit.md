@@ -16,10 +16,11 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
 ## Workflow Steps
 
 1. **Initial Precommit Check**
-   - **ALWAYS use the MCP tool**: Run `kodrdriv_tree_precommit` with `fix=true` and `directory="/Users/tobrien/gitw/grunnverk"`
+   - **ALWAYS use the MCP tool**: Run `kodrdriv_tree_precommit` with `fix=true`, `parallel=true`, and `directory="/Users/tobrien/gitw/grunnverk"`
+   - **CRITICAL: Use `parallel=true`** - This dramatically speeds up execution for large monorepos by running independent packages concurrently
    - **DO NOT** fall back to manual command-line execution (`npx kodrdriv tree precommit`) unless the MCP tool is completely broken
    - If the MCP tool fails, investigate the error message carefully - it will tell you which package failed and why
-   - This will execute precommit checks (linting, type checking, tests, build) across all packages in dependency order
+   - This will execute precommit checks (linting, type checking, tests, build) across all packages, respecting dependency order even in parallel mode
 
 2. **Handle Failures**
    - **If the MCP tool fails**: The error message will indicate which package failed (e.g., "Command failed in package @eldrforge/tree-execution")
@@ -38,8 +39,9 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
 
 3. **Resume from Failure Point**
    - After fixing issues, use `start_from` parameter to resume from the package that failed
+   - **ALWAYS include `parallel=true`** when resuming - it significantly reduces wait time
    - This avoids re-running checks on packages that already passed, saving significant time in large projects
-   - Example: If package `@eldrforge/core` failed, run `kodrdriv_tree_precommit` with `start_from="@eldrforge/core"` or `start_from="core"`
+   - Example: If package `@eldrforge/core` failed, run `kodrdriv_tree_precommit` with `start_from="@eldrforge/core"`, `parallel=true`, and `fix=true`
    - The `start_from` parameter accepts either package name (e.g., `@eldrforge/core`) or directory name (e.g., `core`)
 
 4. **Iterate Until Success**
@@ -54,18 +56,20 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
 
 - **ALWAYS use MCP tools**: Use `kodrdriv_tree_precommit`, `kodrdriv_tree_commit`, etc. - do NOT fall back to manual command-line execution
 - **Monorepo Root**: Always use `directory="/Users/tobrien/gitw/grunnverk"` - kodrdriv is a subdirectory, not the root
+- **Parallel Execution**: **ALWAYS use `parallel=true`** - This is critical for large monorepos as it can reduce execution time from 20-30 minutes to 5-10 minutes by running independent packages concurrently
 - **Efficiency**: For large monorepos, always use `start_from` to resume from failures rather than restarting the entire process
-- **Dependency Order**: The tree commands process packages in dependency order, so fixing a dependency may require re-checking dependent packages
+- **Dependency Order**: The tree commands process packages in dependency order, even in parallel mode - independent packages run concurrently while respecting dependencies
 - **Fix Flag**: Use `fix=true` to enable auto-fixing where possible, but manual fixes may still be required
 - **All Tree Commands Support `start_from`**: The `start_from` parameter works with all tree MCP commands (`kodrdriv_tree_precommit`, `kodrdriv_tree_publish`, `kodrdriv_tree_commit`, etc.)
-- **MCP Tool Failures**: If the MCP tool reports an error, investigate the error message - it contains the package name and failure reason. Continue using the MCP tool with `start_from` to resume from the failure point.
+- **MCP Tool Failures**: If the MCP tool reports an error, investigate the error message - it contains the package name and failure reason. Continue using the MCP tool with `start_from` and `parallel=true` to resume from the failure point.
 
 ## Example Flow
 
 ```
 1. kodrdriv_tree_precommit({
      directory: "/Users/tobrien/gitw/grunnverk",
-     fix: true
+     fix: true,
+     parallel: true  // CRITICAL: Speeds up execution significantly
    })
    → Fails at package "@eldrforge/commands-git"
    → Error: "Command failed in package @eldrforge/commands-git"
@@ -76,11 +80,12 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
 3. kodrdriv_tree_precommit({
      directory: "/Users/tobrien/gitw/grunnverk",
      fix: true,
+     parallel: true,  // ALWAYS include parallel=true
      start_from: "commands-git"  // or "@eldrforge/commands-git"
    })
    → Continues from commands-git, may fail at next package
 
-4. Repeat until all pass (always using MCP tools, never manual commands)
+4. Repeat until all pass (always using MCP tools with parallel=true, never manual commands)
 
 5. kodrdriv_tree_commit({
      directory: "/Users/tobrien/gitw/grunnverk",

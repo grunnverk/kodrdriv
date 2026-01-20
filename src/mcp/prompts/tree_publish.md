@@ -8,6 +8,8 @@ Execute a complete publishing workflow for a monorepo tree. Handle errors gracef
 
 **Important**: Before running `kodrdriv_tree_publish`, verify that `kodrdriv_tree_precommit` works successfully.
 
+**CRITICAL: Use `parallel=true`** when running `kodrdriv_tree_precommit` - this dramatically speeds up execution for large monorepos (reduces time from 20-30 minutes to 5-10 minutes).
+
 **Exception**: If `tree_fix_and_commit` was just executed successfully, you can skip the precommit check and proceed directly to publish. The `tree_fix_and_commit` workflow already ensures all precommit checks pass.
 
 ## Publishing Workflow
@@ -103,7 +105,8 @@ After a successful publish workflow, projects should end up in a "working" branc
 ## Example Flow
 
 ```
-1. Run kodrdriv_tree_precommit (unless fix_and_commit was just run)
+1. Run kodrdriv_tree_precommit({ parallel: true }) (unless fix_and_commit was just run)
+   → Use parallel=true to speed up execution significantly
 2. Run kodrdriv_tree_publish
    → Error: PR validation failed for @org/package-a
    → Link provided: https://github.com/org/repo/pull/123

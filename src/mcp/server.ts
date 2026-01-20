@@ -191,9 +191,24 @@ async function main() {
                         errorParts.push('=== Command Output ===');
                         errorParts.push(result.logs.join('\n'));
                         errorParts.push('\n=== Error ===');
+                    } else {
+                        // If no logs were captured, indicate this clearly
+                        errorParts.push('=== Command Output ===');
+                        errorParts.push('ℹ️ Command started but no logs were captured before failure');
+                        errorParts.push('\n=== Error ===');
                     }
 
                     errorParts.push(result.error || 'Unknown error');
+
+                    // Include context information if available (helps identify which package/phase failed)
+                    if (result.context && typeof result.context === 'object') {
+                        errorParts.push('\n=== Context ===');
+                        for (const [key, value] of Object.entries(result.context)) {
+                            if (value !== undefined && value !== null) {
+                                errorParts.push(`${key}: ${String(value)}`);
+                            }
+                        }
+                    }
 
                     // Include stderr/stdout details if available (critical for debugging CLI errors)
                     if (result.details) {
@@ -208,6 +223,14 @@ async function main() {
                         if (result.details.exitCode !== undefined) {
                             errorParts.push(`\n=== Exit Code ===`);
                             errorParts.push(`${result.details.exitCode}`);
+                        }
+                        if (result.details.phase) {
+                            errorParts.push(`\n=== Phase ===`);
+                            errorParts.push(result.details.phase);
+                        }
+                        if (result.details.files && result.details.files.length > 0) {
+                            errorParts.push(`\n=== Files ===`);
+                            errorParts.push(result.details.files.join('\n'));
                         }
                     }
 
