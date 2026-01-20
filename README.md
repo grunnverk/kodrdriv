@@ -46,7 +46,7 @@ KodrDriv now supports the **Model Context Protocol (MCP)**, enabling AI assistan
 
 ### Features
 - **13 MCP Tools**: All kodrdriv commands available via MCP
-- **8 Resources**: Access configs, status, workspace data via `kodrdriv://` URIs  
+- **8 Resources**: Access configs, status, workspace data via `kodrdriv://` URIs
 - **6 Workflow Prompts**: Guided multi-step operations
 
 ### Quick Setup for Cursor
