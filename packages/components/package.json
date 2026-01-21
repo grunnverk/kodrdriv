@@ -1,4 +1,7 @@
 {
   "name": "@myorg/components",
-  "version": "3.0.1"
+  "version": "3.0.1",
+  "scripts": {
+    "precommit": "echo 'No precommit checks for this package'"
+  }
 }

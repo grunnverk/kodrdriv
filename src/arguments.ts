@@ -2,7 +2,7 @@
 import { Command } from "commander";
 import path from "path";
 import { z } from "zod";
-import { ALLOWED_COMMANDS, DEFAULT_CHARACTER_ENCODING, DEFAULT_COMMAND, KODRDRIV_DEFAULTS, PROGRAM_NAME, VERSION } from "./constants";
+import { ALLOWED_COMMANDS, DEFAULT_CHARACTER_ENCODING, DEFAULT_COMMAND, KODRDRIV_DEFAULTS, PROGRAM_NAME, VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from "./constants";
 import { getLogger } from "./logging";
 const logger = getLogger();
 import { CommandConfig, Config, SecureConfig } from './types'; // Import the Config type from main.ts
@@ -33,6 +33,7 @@ export const InputSchema = z.object({
     targetVersion: z.string().optional(),
     skipAlreadyPublished: z.boolean().optional(),
     forceRepublish: z.boolean().optional(),
+    skipLinkCleanup: z.boolean().optional(),
     excludedPatterns: z.array(z.string()).optional(),
     excludedPaths: z.array(z.string()).optional(),
     exclude: z.array(z.string()).optional(), // Alias for excludedPatterns
@@ -79,8 +80,18 @@ export const InputSchema = z.object({
     workingTagPrefix: z.string().optional(), // Tag prefix for working branch tags
     updateDeps: z.string().optional(), // Scope for inter-project dependency updates in publish command
     interProject: z.boolean().optional(), // Update inter-project dependencies in updates command
+    report: z.boolean().optional(), // Generate dependency analysis report in updates command
+    analyze: z.boolean().optional(), // Run AI-powered dependency analysis
+    strategy: z.enum(['latest', 'conservative', 'compatible']).optional(), // Strategy for analyze mode
     selfReflection: z.boolean().optional(), // Generate self-reflection report
     maxAgenticIterations: z.number().optional(), // Maximum iterations for AI analysis
+    // Pull command options
+    remote: z.string().optional(), // Remote to pull from
+    branch: z.string().optional(), // Branch to pull (overloads release.from and development.branch)
+    autoStash: z.boolean().optional(), // Auto-stash local changes
+    autoResolve: z.boolean().optional(), // Auto-resolve common conflicts
+    // Precommit command options
+    fix: z.boolean().optional(), // Attempt to auto-fix linting issues
 });
 
 export type Input = z.infer<typeof InputSchema>;
@@ -165,6 +176,7 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
         if (finalCliArgs.syncTarget !== undefined) transformedCliArgs.publish.syncTarget = finalCliArgs.syncTarget;
         if (finalCliArgs.skipAlreadyPublished !== undefined) transformedCliArgs.publish.skipAlreadyPublished = finalCliArgs.skipAlreadyPublished;
         if (finalCliArgs.forceRepublish !== undefined) transformedCliArgs.publish.forceRepublish = finalCliArgs.forceRepublish;
+        if (finalCliArgs.skipLinkCleanup !== undefined) transformedCliArgs.publish.skipLinkCleanup = finalCliArgs.skipLinkCleanup;
         if ((commandName === 'publish' || finalCliArgs.mergeMethod !== undefined || finalCliArgs.targetVersion !== undefined || finalCliArgs.syncTarget !== undefined || finalCliArgs.interactive !== undefined || finalCliArgs.skipAlreadyPublished !== undefined || finalCliArgs.forceRepublish !== undefined) && finalCliArgs.noMilestones !== undefined) transformedCliArgs.publish.noMilestones = finalCliArgs.noMilestones;
         if (finalCliArgs.updateDeps !== undefined) transformedCliArgs.publish.updateDeps = finalCliArgs.updateDeps;
 
@@ -266,6 +278,12 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
         if (finalCliArgs.openaiMaxOutputTokens !== undefined) transformedCliArgs.audioReview.openaiMaxOutputTokens = finalCliArgs.openaiMaxOutputTokens;
     }
 
+    // Nested mappings for 'precommit' options
+    if (finalCliArgs.fix !== undefined) {
+        transformedCliArgs.precommit = {};
+        transformedCliArgs.precommit.fix = finalCliArgs.fix;
+    }
+
     // Nested mappings for 'review' options
     if (finalCliArgs.includeCommitHistory !== undefined ||
         finalCliArgs.includeRecentDiffs !== undefined ||
@@ -345,7 +363,8 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
             cliArgs.statusParallel !== undefined || cliArgs.auditBranches !== undefined ||
             cliArgs.parallel !== undefined || cliArgs.markCompleted !== undefined ||
             cliArgs.skip !== undefined || cliArgs.retryFailed !== undefined ||
-            cliArgs.skipFailed !== undefined || cliArgs.validateState !== undefined) {
+            cliArgs.skipFailed !== undefined || cliArgs.validateState !== undefined ||
+            cliArgs.order !== undefined) {
 
             transformedCliArgs.tree = {};
             if (finalCliArgs.directories !== undefined) transformedCliArgs.tree.directories = finalCliArgs.directories;
@@ -385,6 +404,7 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
             if (cliArgs.retryFailed !== undefined) transformedCliArgs.tree.retryFailed = cliArgs.retryFailed;
             if (cliArgs.skipFailed !== undefined) transformedCliArgs.tree.skipFailed = cliArgs.skipFailed;
             if (cliArgs.validateState !== undefined) transformedCliArgs.tree.validateState = cliArgs.validateState;
+            if (cliArgs.order !== undefined) transformedCliArgs.tree.order = cliArgs.order;
         }
     }
 
@@ -406,11 +426,23 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
     }
 
     // Nested mappings for 'updates' options
-    if (commandName === 'updates' && (finalCliArgs.scope !== undefined || finalCliArgs.directories !== undefined || finalCliArgs.interProject !== undefined)) {
+    if (commandName === 'updates' && (finalCliArgs.scope !== undefined || finalCliArgs.directories !== undefined || finalCliArgs.interProject !== undefined || finalCliArgs.report !== undefined || finalCliArgs.analyze !== undefined || finalCliArgs.strategy !== undefined)) {
         transformedCliArgs.updates = {};
         if (finalCliArgs.scope !== undefined) transformedCliArgs.updates.scope = finalCliArgs.scope;
         if (finalCliArgs.directories !== undefined) transformedCliArgs.updates.directories = finalCliArgs.directories;
         if (finalCliArgs.interProject !== undefined) transformedCliArgs.updates.interProject = finalCliArgs.interProject;
+        if (finalCliArgs.report !== undefined) transformedCliArgs.updates.report = finalCliArgs.report;
+        if (finalCliArgs.analyze !== undefined) transformedCliArgs.updates.analyze = finalCliArgs.analyze;
+        if (finalCliArgs.strategy !== undefined) transformedCliArgs.updates.strategy = finalCliArgs.strategy;
+    }
+
+    // Nested mappings for 'pull' options
+    if (commandName === 'pull' && (finalCliArgs.remote !== undefined || finalCliArgs.branch !== undefined || finalCliArgs.autoStash !== undefined || finalCliArgs.autoResolve !== undefined)) {
+        transformedCliArgs.pull = {};
+        if (finalCliArgs.remote !== undefined) transformedCliArgs.pull.remote = finalCliArgs.remote;
+        if (finalCliArgs.branch !== undefined) transformedCliArgs.pull.branch = finalCliArgs.branch;
+        if (finalCliArgs.autoStash !== undefined) transformedCliArgs.pull.autoStash = finalCliArgs.autoStash;
+        if (finalCliArgs.autoResolve !== undefined) transformedCliArgs.pull.autoResolve = finalCliArgs.autoResolve;
     }
 
     // Handle excluded patterns (Commander.js converts --excluded-paths to excludedPaths)
@@ -462,12 +494,13 @@ export const configure = async (cardigantime: any): Promise<[Config, SecureConfi
     const logger = getLogger();
     let program = new Command();
 
-    // Configure program basics
+    // Configure program basics with custom version string
+    const versionString = `${VERSION}\nBuilt on: ${BUILD_HOSTNAME}\nBuild time: ${BUILD_TIMESTAMP}`;
     program
         .name(PROGRAM_NAME)
         .summary('Create Intelligent Release Notes or Change Logs from Git')
         .description('Create Intelligent Release Notes or Change Logs from Git')
-        .version(VERSION);
+        .version(versionString, '-V, --version', 'Display version information');
 
     // Let cardigantime add its arguments first
     program = await cardigantime.configure(program);
@@ -838,6 +871,7 @@ export async function getCliConfig(
         .option('--retry-failed', 'retry all previously failed packages from checkpoint')
         .option('--skip-failed', 'skip failed packages and continue with remaining packages')
         .option('--validate-state', 'validate checkpoint state integrity before continuing')
+        .option('--order', 'show package execution order (topological sort based on dependencies)')
 
         // Package Filtering
         .option('--excluded-patterns [excludedPatterns...]', 'patterns to exclude packages from processing (e.g., "**/node_modules/**", "dist/*")')
@@ -877,7 +911,8 @@ Examples:
   kodrdriv tree --cmd "npm test"
   kodrdriv tree publish --continue --retry-failed
   kodrdriv tree publish --audit-branches
-  kodrdriv tree publish --status-parallel`);
+  kodrdriv tree publish --status-parallel
+  kodrdriv tree --order`);
     addSharedOptions(treeCommand);
 
     const linkCommand = program
@@ -1010,8 +1045,18 @@ Examples:
         .description('Remove the output directory and all generated files');
     addSharedOptions(cleanCommand);
 
+    const pullCommand = program
+        .command('pull')
+        .option('--remote <remote>', 'remote to pull from (default: origin)', 'origin')
+        .option('--branch <branch>', 'branch to pull (default: current branch)')
+        .option('--no-auto-stash', 'do not auto-stash local changes')
+        .option('--no-auto-resolve', 'do not auto-resolve common conflicts')
+        .description('Smart pull from remote with auto-conflict resolution for common files (package-lock.json, dist/, etc.)');
+    addSharedOptions(pullCommand);
+
     const precommitCommand = program
         .command('precommit')
+        .option('--fix', 'Attempt to auto-fix linting issues before running precommit checks')
         .description('Run precommit checks (lint -> build -> test) with optimization');
     addSharedOptions(precommitCommand);
 
@@ -1036,6 +1081,9 @@ Examples:
         .command('updates [scope]')
         .option('--directories [directories...]', 'directories to scan for packages (tree mode, defaults to current directory)')
         .option('--inter-project', 'update inter-project dependencies based on tree state (requires --scope)')
+        .option('--report', 'generate a dependency analysis report instead of updating')
+        .option('--analyze', 'run AI-powered analysis on the dependency report to get upgrade recommendations')
+        .option('--strategy <strategy>', 'strategy for analyze mode: latest, conservative, or compatible', 'latest')
         .description('Update dependencies matching a specific scope using npm-check-updates (e.g., kodrdriv updates @fjell) or update inter-project dependencies (kodrdriv updates --inter-project @fjell)');
     addSharedOptions(updatesCommand);
 
@@ -1245,6 +1293,9 @@ Examples:
         } else if (commandName === 'clean' && chosen?.cleanCommand?.opts) {
             const cleanCmd = chosen.cleanCommand;
             commandOptions = cleanCmd.opts();
+        } else if (commandName === 'precommit' && chosen?.precommitCommand?.opts) {
+            const precommitCmd = chosen.precommitCommand;
+            commandOptions = precommitCmd.opts();
         } else if (commandName === 'development' && chosen?.developmentCommand?.opts) {
             const developmentCmd = chosen.developmentCommand;
             commandOptions = developmentCmd.opts();

@@ -9,6 +9,8 @@ Built-in commands provide dependency-aware execution of core kodrdriv functional
 ```bash
 kodrdriv tree commit      # Run commit operations across packages
 kodrdriv tree publish     # Run publish operations across packages
+kodrdriv tree pull        # Smart pull with auto-conflict resolution across packages
+kodrdriv tree updates     # Update dependencies with reports and AI analysis
 kodrdriv tree link        # Link workspace packages across packages
 kodrdriv tree unlink      # Unlink workspace packages across packages
 kodrdriv tree development # Set up development environments across packages
@@ -110,6 +112,129 @@ Each package can have its own publish settings:
   }
 }
 ```
+
+### `kodrdriv tree pull`
+
+Smart pull from remote repositories across all packages with automatic conflict resolution.
+
+**What it does:**
+- Runs `kodrdriv pull` in each package directory
+- Automatically stashes uncommitted changes before pulling
+- Auto-resolves common conflicts (package-lock.json, version bumps, build artifacts)
+- Regenerates lock files after resolution
+- Restores stashed changes after pull
+
+**Usage:**
+```bash
+# Pull all packages from origin
+kodrdriv tree pull
+
+# Pull from upstream remote
+kodrdriv tree pull --remote upstream
+
+# Pull specific branch across all packages
+kodrdriv tree pull --branch main
+
+# Dry run to see what would happen
+kodrdriv tree pull --dry-run
+
+# Resume from a specific package
+kodrdriv tree pull --start-from my-package
+```
+
+**Auto-Resolved Conflicts:**
+| File Pattern | Resolution |
+|-------------|------------|
+| `package-lock.json` | Accept remote, regenerate with `npm install` |
+| `yarn.lock` | Accept remote, regenerate |
+| `package.json` (version only) | Take higher semver version |
+| `dist/**` | Accept remote (rebuild later) |
+| `*.js.map`, `*.d.ts` | Accept remote |
+
+**Configuration:**
+```json
+{
+  "pull": {
+    "remote": "origin",
+    "autoStash": true,
+    "autoResolve": true
+  }
+}
+```
+
+**Use Cases:**
+- **Morning sync**: Pull latest changes across all packages
+- **Pre-release**: Ensure all packages have latest remote changes
+- **Conflict resolution**: Avoid manual resolution of common lock file conflicts
+- **Team coordination**: Keep monorepo synchronized across developers
+
+For detailed pull documentation, see [Pull Command](pull.md).
+
+### `kodrdriv tree updates`
+
+Update dependencies across all packages with scoped updates, dependency reports, and AI analysis.
+
+**What it does:**
+- Runs `kodrdriv updates` in each package directory
+- Updates packages matching specific npm scopes
+- Generates comprehensive dependency reports
+- Provides AI-powered upgrade recommendations
+
+**Usage:**
+```bash
+# Update @eldrforge packages across all packages
+kodrdriv tree updates @eldrforge
+
+# Use configured default scopes
+kodrdriv tree updates
+
+# Generate dependency analysis report
+kodrdriv tree updates --report
+
+# AI-powered upgrade recommendations
+kodrdriv tree updates --analyze
+
+# Conservative upgrade strategy
+kodrdriv tree updates --analyze --strategy conservative
+
+# Sync inter-project dependencies
+kodrdriv tree updates --inter-project @eldrforge
+```
+
+**Key Features:**
+- **Scoped Updates**: Update only packages matching specific scopes (`@eldrforge/*`)
+- **Dependency Reports**: Comprehensive analysis of conflicts and shared dependencies
+- **AI Analysis**: Intelligent upgrade recommendations with version compatibility checking
+- **Inter-project Sync**: Keep internal package versions synchronized
+
+**Report Output:**
+```
+┌─ 🔴 VERSION CONFLICTS (3 packages)
+│
+│  ├─ openai
+│  │     ^4.87.3 (used by: core, commands-git)
+│  │     ^6.15.0 (used by: ai-service)
+```
+
+**AI Analysis Output:**
+```
+┌─ 💡 RECOMMENDATIONS
+│
+│  ├─ 🔴 openai
+│  │     Current: ^4.87.3, ^6.15.0
+│  │     Recommended: ^6.15.0
+│  │     Reason: Required by @riotprompt/riotprompt peer dependency
+```
+
+**Configuration:**
+```yaml
+updates:
+  scopes:
+    - "@eldrforge"
+    - "@riotprompt"
+```
+
+For detailed updates documentation, see [Updates Command](updates.md).
 
 ### `kodrdriv tree link`
 
@@ -544,6 +669,71 @@ kodrdriv tree publish --start-from integration-app  # Publish remaining packages
 2. **Dependency Loops**: Tree command will detect and report circular dependencies
 3. **Environment Variables**: Each package needs access to required environment variables
 4. **Git State**: Ensure git repositories are in expected state for commit/publish operations
+
+### Version Conflict with Published Packages
+
+A subtle but critical issue can occur when local development versions conflict with already-published versions on npm:
+
+**The Problem:**
+- Local package A has version `0.0.4-dev.0` (development version)
+- Version `0.0.4` was previously published to npm
+- Package B depends on package A with `^0.0.4`
+- When `kodrdriv tree publish` runs on package B, npm may resolve to the published `0.0.4` instead of the local `0.0.4-dev.0`
+- The published version lacks your local changes, causing build or test failures
+
+**Why This Happens:**
+- Development versions like `X.Y.Z-dev.N` are semver pre-releases
+- Semver range `^X.Y.Z` does NOT match pre-release versions by default
+- When the linked local package is unlinked during publish preparation, npm falls back to the registry version
+- This silently uses stale code instead of your local modifications
+
+**Solutions:**
+
+1. **Use Unpublished Version Numbers** (Recommended):
+   - Before starting development, bump ALL packages to a version that has never been published
+   - Example: If `1.0.0` was the last release, use `1.1.0-dev.0` or `2.0.0-dev.0`
+   - This ensures npm cannot resolve to a published version during publishing
+   
+   ```bash
+   # Good: 1.0.0 is published, development uses 1.1.0-dev.0
+   # npm will fail to find 1.1.0, forcing linked resolution
+   
+   # Bad: 1.0.0 is published, development uses 1.0.0-dev.1
+   # npm may find 1.0.0 and use it instead of local changes
+   ```
+
+2. **Version Reset for Major Releases**:
+   - When starting a major release cycle, reset all packages to a new major version
+   - Example: All packages go from various `0.x.y` versions to `1.0.0-dev.0`
+   - This creates a clean slate where no `1.x.y` versions exist on npm yet
+
+3. **Pre-publish Version Audit** (Future Enhancement):
+   - `kodrdriv tree publish` could check if any development versions have published equivalents
+   - Warn or fail if `X.Y.Z-dev.N` would conflict with published `X.Y.Z`
+
+**Example Scenario:**
+```
+Published to npm:
+  @myorg/core: 0.0.4
+  @myorg/utils: 0.0.3
+  @myorg/app: 0.0.2
+
+Local development:
+  @myorg/core: 0.0.4-dev.0  ❌ CONFLICT - 0.0.4 exists on npm
+  @myorg/utils: 0.0.4-dev.0 ✅ OK - 0.0.4 not on npm
+  @myorg/app: 0.0.3-dev.0   ✅ OK - 0.0.3 not on npm
+```
+
+**Best Practice:**
+Before `kodrdriv tree publish`, ensure all development versions are ahead of any published versions:
+```bash
+# Check what's published
+npm view @myorg/core version
+npm view @myorg/utils version
+
+# Ensure local versions are ahead
+# If @myorg/core@1.0.0 is published, use 1.1.0-dev.0 or 2.0.0-dev.0 locally
+```
 
 ### Debug Information
 

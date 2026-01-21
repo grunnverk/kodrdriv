@@ -8,6 +8,15 @@ KodrDriv automates Git workflows by using AI to generate intelligent commit mess
 
 **Core Value**: Solves the "context switch" problem - when you're deep in code and Git asks you to summarize what you've done, kodrdriv analyzes your changes and writes documentation that reflects your actual work.
 
+### MCP Integration
+
+KodrDriv supports the **Model Context Protocol (MCP)**, allowing AI assistants like Cursor to directly invoke all kodrdriv commands:
+- **14 Tools**: commit, release, publish, development, precommit, tree operations, and more
+- **8 Resources**: Access config, status, and workspace data via `kodrdriv://` URIs
+- **6 Prompts**: Guided workflows for common operations
+
+See [`MCP_INTEGRATION.md`](../MCP_INTEGRATION.md) for details.
+
 ## Guide Contents
 
 ### Getting Started

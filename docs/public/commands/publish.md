@@ -137,6 +137,17 @@ For detailed tree mode documentation, see [Tree Built-in Commands](tree-built-in
 
 Here's what the command does:
 
+## Version Conflict Warning
+
+> [!CAUTION]
+> **Development versions can conflict with published versions!**
+>
+> If your local package has version `X.Y.Z-dev.N` and version `X.Y.Z` is already published to npm, dependent packages may incorrectly resolve to the published version during the publish process, causing failures.
+>
+> **Solution:** Always use development versions that are **ahead** of any published version. If `1.0.0` is published, use `1.1.0-dev.0` or `2.0.0-dev.0` for development—never `1.0.0-dev.N`.
+>
+> See [Version Conflict with Published Packages](tree-built-in-commands.md#version-conflict-with-published-packages) for detailed explanation and solutions.
+
 ## Prechecks
 
 Before starting any release work, the command performs several critical validations:

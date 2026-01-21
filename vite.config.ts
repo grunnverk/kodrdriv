@@ -4,6 +4,7 @@ import replace from '@rollup/plugin-replace';
 // import { visualizer } from 'rollup-plugin-visualizer';
 import { execSync } from 'child_process';
 import shebang from 'rollup-plugin-preserve-shebang';
+import os from 'os';
 
 let gitInfo = {
     branch: '',
@@ -29,6 +30,12 @@ try {
     // eslint-disable-next-line no-console
     console.log('Directory does not have a Git repository, skipping git info');
 }
+
+// Capture build metadata
+const buildInfo = {
+    hostname: os.hostname(),
+    timestamp: new Date().toISOString(),
+};
 
 
 export default defineConfig({
@@ -57,6 +64,8 @@ export default defineConfig({
             '__GIT_TAGS__': gitInfo.tags === '' ? '' : `T:${gitInfo.tags}`,
             '__GIT_COMMIT_DATE__': gitInfo.commitDate,
             '__SYSTEM_INFO__': `${process.platform} ${process.arch} ${process.version}`,
+            '__BUILD_HOSTNAME__': buildInfo.hostname,
+            '__BUILD_TIMESTAMP__': buildInfo.timestamp,
             preventAssignment: true,
         }),
     ],
@@ -66,6 +75,7 @@ export default defineConfig({
         lib: {
             entry: './src/main.ts',
             formats: ['es'],
+            fileName: 'main',
         },
         rollupOptions: {
             external: [
@@ -83,6 +93,8 @@ export default defineConfig({
                 '@eldrforge/tree-core',
                 '@eldrforge/tree-execution',
                 '@eldrforge/audio-tools',
+                // MCP dependencies
+                '@modelcontextprotocol/sdk',
                 // External dependencies
                 '@theunwalked/dreadcabinet',
                 '@theunwalked/cardigantime',
@@ -93,8 +105,10 @@ export default defineConfig({
             ],
             input: 'src/main.ts',
             output: {
-                format: 'esm',
+                dir: 'dist',
+                format: 'es',
                 entryFileNames: '[name].js',
+                chunkFileNames: '[name].js',
                 preserveModules: true,
                 preserveModulesRoot: 'src',
                 exports: 'named',

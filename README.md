@@ -1,3 +1,10 @@
+# KodrDriv - AI-Powered Git Workflow Automation
+
+[![MCP Integration](https://img.shields.io/badge/MCP-Enabled-blue)](https://modelcontextprotocol.io)
+[![14 MCP Tools](https://img.shields.io/badge/MCP_Tools-14-brightgreen)]()
+[![8 Resources](https://img.shields.io/badge/MCP_Resources-8-brightgreen)]()
+[![6 Prompts](https://img.shields.io/badge/MCP_Prompts-6-brightgreen)]()
+
 # KodrDriv
 
 KodrDriv is an AI-powered Git workflow automation tool that generates intelligent commit messages and release notes from your code changes. It analyzes your repository to create meaningful documentation while automating the entire release process.
@@ -33,6 +40,36 @@ If you need to upgrade Node.js, visit [nodejs.org](https://nodejs.org/) or use a
 npm install -g @eldrforge/kodrdriv
 ```
 
+## 🤖 MCP Integration
+
+KodrDriv supports the **Model Context Protocol (MCP)**, enabling AI assistants like Cursor to directly invoke kodrdriv commands.
+
+### Features
+- **14 Fully Implemented Tools**: All kodrdriv commands including automated publish→development workflow
+- **8 Resources**: Access configs, status, workspace data via `kodrdriv://` URIs
+- **6 Workflow Prompts**: Guided multi-step operations
+
+### Quick Setup for Cursor
+
+Add to `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "kodrdriv": {
+      "command": "kodrdriv-mcp"
+    }
+  }
+}
+```
+
+Then simply ask: *"Use kodrdriv to commit my changes"*
+
+### Documentation
+- **[Integration Guide](MCP_INTEGRATION.md)** - Complete MCP documentation
+- **[Tools Reference](docs/mcp-tools-reference.md)** - All 14 tools
+- **[Resources Reference](docs/mcp-resources-reference.md)** - All 8 resources
+- **[Prompts Reference](docs/mcp-prompts-reference.md)** - All 6 workflows
+
 
 ## Quick Start
 
@@ -61,6 +98,17 @@ kodrdriv release --context-files CHANGELOG.md --self-reflection
 kodrdriv publish
 ```
 
+### Smart Git Operations
+```bash
+# Smart pull with auto-conflict resolution
+kodrdriv pull
+kodrdriv tree pull  # Pull all packages in monorepo
+
+# Update dependencies with AI analysis
+kodrdriv tree updates --report   # See dependency conflicts
+kodrdriv updates --analyze       # Get AI upgrade recommendations
+```
+
 ### Audio-Driven Development
 ```bash
 kodrdriv select-audio  # Configure microphone (one-time setup)
@@ -75,7 +123,10 @@ kodrdriv audio-commit  # Record audio to generate commit messages
   - 8 tools for commit message generation
   - Self-reflection reports with tool effectiveness metrics
   - Configurable iteration limits for complex releases
-- **Context Files (NEW)** - Pass documentation files as context for better AI understanding
+- **Smart Git Operations** - Intelligent handling of common git pain points
+  - **Smart Pull** - Auto-resolves `package-lock.json`, version bumps, and build artifacts
+  - **Dependency Analysis** - AI-powered upgrade recommendations with version conflict detection
+- **Context Files** - Pass documentation files as context for better AI understanding
 - **Human-Readable Output** - Professional tone without AI slop, emojis, or marketing speak
 - **GitHub Issues Integration** - Automatically analyzes recently closed issues to provide context for commit messages, prioritizing milestone-relevant issues
 - **Stop-Context Filtering** - Automatically filters sensitive information from AI-generated content to maintain privacy across projects
@@ -134,6 +185,8 @@ kodrdriv --check-config
 - **[audio-review](docs/public/commands/audio-review.md)** - Record audio for review analysis
 - **[release](docs/public/commands/release.md)** - Generate comprehensive release notes
 - **[publish](docs/public/commands/publish.md)** - Automate the entire release process
+- **[pull](docs/public/commands/pull.md)** - Smart pull with auto-conflict resolution
+- **[updates](docs/public/commands/updates.md)** - Dependency updates with AI analysis
 - **[link](docs/public/commands/link.md)** - Link local packages for development
 - **[unlink](docs/public/commands/unlink.md)** - Remove workspace links
 - **[clean](docs/public/commands/clean.md)** - Clean generated files
@@ -159,5 +212,5 @@ Apache-2.0 - see [LICENSE](LICENSE) file for details.
 ## About the Name
 
 Like Thor's hammer, this tool smashes through your repetitive coding tasks. But unlike Mjölnir, it won't make you worthy — it'll just make you faster. Strike through commits, forge releases, and channel the lightning of AI to automate your workflow. Because sometimes you need a hammer, and sometimes you need a tool that actually works. Pirate.
-TEST
-TEST
+
+<!-- Build: 2026-01-15 15:59:12 UTC -->

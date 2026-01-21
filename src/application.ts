@@ -2,7 +2,7 @@
 // This MUST be the first thing we do, before any other imports that might load dotenv
 // This ensures that shell-exported variables like OPENAI_API_KEY take precedence
 import { config as dotenvConfig } from 'dotenv';
-dotenvConfig({ override: false });
+dotenvConfig({ override: false, debug: false });
 
 import * as Cardigantime from '@theunwalked/cardigantime';
 import { setLogger as setGitLogger } from '@eldrforge/git-tools';
@@ -17,7 +17,7 @@ import * as CommandsGit from '@eldrforge/commands-git';
 import * as CommandsTree from '@eldrforge/commands-tree';
 import * as CommandsPublish from '@eldrforge/commands-publish';
 import * as CommandsAudio from '@eldrforge/commands-audio';
-import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION } from './constants';
+import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from './constants';
 import { UserCancellationError } from '@eldrforge/shared';
 import { getLogger, setLogLevel } from './logging';
 import { Config, SecureConfig, ConfigSchema } from './types';
@@ -29,7 +29,7 @@ function checkNodeVersion(): void {
     const requiredMajorVersion = 24;
     const currentVersion = process.version;
     const majorVersion = parseInt(currentVersion.slice(1).split('.')[0], 10);
-    
+
     if (majorVersion < requiredMajorVersion) {
         // eslint-disable-next-line no-console
         console.error(`\n❌ ERROR: Node.js version ${requiredMajorVersion}.0.0 or higher is required.`);
@@ -44,6 +44,18 @@ function checkNodeVersion(): void {
 }
 
 /**
+ * Get formatted version information including build metadata.
+ */
+export function getVersionInfo(): { version: string; buildHostname: string; buildTimestamp: string; formatted: string } {
+    return {
+        version: VERSION,
+        buildHostname: BUILD_HOSTNAME,
+        buildTimestamp: BUILD_TIMESTAMP,
+        formatted: `${VERSION}\nBuilt on: ${BUILD_HOSTNAME}\nBuild time: ${BUILD_TIMESTAMP}`
+    };
+}
+
+/**
  * Print debug information about the command being executed when debug flag is enabled.
  */
 function printDebugCommandInfo(commandName: string, runConfig: Config): void {
@@ -52,25 +64,25 @@ function printDebugCommandInfo(commandName: string, runConfig: Config): void {
         logger.info('DEBUG_INFO_HEADER: KodrDriv debug information');
         logger.info('DEBUG_INFO_COMMAND: Command being executed | Command: %s', commandName);
         logger.info('DEBUG_INFO_VERSION: KodrDriv version | Version: %s', VERSION);
-        
+
         // Log last 4 characters of tokens for debugging permissions issues
         const openaiToken = process.env.OPENAI_API_KEY;
         const githubToken = process.env.GITHUB_TOKEN;
-        
+
         if (openaiToken) {
             const tokenSuffix = openaiToken.slice(-4);
             logger.info('DEBUG_INFO_TOKEN: OpenAI API Key | Suffix: ...%s', tokenSuffix);
         } else {
             logger.info('DEBUG_INFO_TOKEN: OpenAI API Key | Status: not set');
         }
-        
+
         if (githubToken) {
             const tokenSuffix = githubToken.slice(-4);
             logger.info('DEBUG_INFO_TOKEN: GitHub Token | Suffix: ...%s', tokenSuffix);
         } else {
             logger.info('DEBUG_INFO_TOKEN: GitHub Token | Status: not set');
         }
-        
+
         logger.info('DEBUG_INFO_FOOTER: End of debug information');
     }
 }
@@ -98,7 +110,7 @@ export function configureEarlyLogging(): void {
 export async function runApplication(): Promise<void> {
     // Check Node.js version first, before doing anything else
     checkNodeVersion();
-    
+
     // Configure logging early, before CardiganTime initialization
     configureEarlyLogging();
 
@@ -151,8 +163,9 @@ export async function runApplication(): Promise<void> {
     setGitHubLogger(logger);
     setPromptFunction(promptConfirmation);
 
-    // Display version information
-    logger.info('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | Status: starting', VERSION);
+    // Display version information including build metadata
+    logger.info('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | BuildHost: %s | BuildTime: %s | Status: starting',
+        VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP);
 
     // Handle check-config command first
     if (commandConfig.commandName === COMMAND_CHECK_CONFIG) {
@@ -175,7 +188,7 @@ export async function runApplication(): Promise<void> {
     // Handle special case for tree command with built-in command argument
     if (command === 'tree' && process.argv[3]) {
         const treeBuiltInCommand = process.argv[3];
-        const supportedBuiltInCommands = ['commit', 'publish', 'link', 'unlink', 'development', 'updates'];
+        const supportedBuiltInCommands = ['commit', 'publish', 'link', 'unlink', 'development', 'updates', 'pull'];
         if (supportedBuiltInCommands.includes(treeBuiltInCommand)) {
             // This is a tree command with built-in command, keep commandName as 'tree'
             commandName = 'tree';
@@ -185,7 +198,7 @@ export async function runApplication(): Promise<void> {
         }
     }
     // If we have a specific command argument, use that
-    else if (command === 'commit' || command === 'audio-commit' || command === 'release' || command === 'publish' || command === 'tree' || command === 'link' || command === 'unlink' || command === 'audio-review' || command === 'clean' || command === 'precommit' || command === 'review' || command === 'select-audio' || command === 'development' || command === 'versions' || command === 'updates') {
+    else if (command === 'commit' || command === 'audio-commit' || command === 'release' || command === 'publish' || command === 'tree' || command === 'link' || command === 'unlink' || command === 'audio-review' || command === 'clean' || command === 'pull' || command === 'precommit' || command === 'review' || command === 'select-audio' || command === 'development' || command === 'versions' || command === 'updates') {
         commandName = command;
     }
 
@@ -205,6 +218,8 @@ export async function runApplication(): Promise<void> {
         } else if (commandName === COMMAND_CLEAN) {
             await CommandsGit.clean(runConfig);
             summary = 'Output directory cleaned successfully.';
+        } else if (commandName === COMMAND_PULL) {
+            summary = await CommandsGit.pull(runConfig);
         } else if (commandName === COMMAND_REVIEW) {
             summary = await CommandsGit.review(runConfig);
         }
