@@ -1,5 +1,7 @@
 # KodrDriv - AI-Powered Git Workflow Automation
 
+<!-- Build trigger: 2026-01-21 -->
+
 [![MCP Integration](https://img.shields.io/badge/MCP-Enabled-blue)](https://modelcontextprotocol.io)
 [![14 MCP Tools](https://img.shields.io/badge/MCP_Tools-14-brightgreen)]()
 [![8 Resources](https://img.shields.io/badge/MCP_Resources-8-brightgreen)]()
