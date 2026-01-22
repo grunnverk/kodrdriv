@@ -6,17 +6,17 @@
 
 /* eslint-disable import/extensions */
 import type { McpTool, ToolResult, ToolExecutionContext } from './types.js';
-import * as CommandsGit from '@eldrforge/commands-git';
-import * as CommandsTree from '@eldrforge/commands-tree';
-import * as CommandsPublish from '@eldrforge/commands-publish';
+import * as CommandsGit from '@grunnverk/commands-git';
+import * as CommandsTree from '@grunnverk/commands-tree';
+import * as CommandsPublish from '@grunnverk/commands-publish';
 // Import error formatting functions from core package
-// These functions are exported from @eldrforge/core
-import { formatErrorForMCP, extractCommandErrorDetails, getLogger as getCoreLogger } from '@eldrforge/core';
+// These functions are exported from @grunnverk/core
+import { formatErrorForMCP, extractCommandErrorDetails, getLogger as getCoreLogger } from '@grunnverk/core';
 import { VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from '../constants.js';
 import { installLogCapture } from './logCapture.js';
-import { scanForPackageJsonFiles, buildDependencyGraph, topologicalSort } from '@eldrforge/tree-core';
+import { scanForPackageJsonFiles, buildDependencyGraph, topologicalSort } from '@grunnverk/tree-core';
 // Import setLogger to configure tree-execution logging to go through winston (not console)
-import { setLogger as setTreeExecutionLogger } from '@eldrforge/tree-execution';
+import { setLogger as setTreeExecutionLogger } from '@grunnverk/tree-execution';
 /* eslint-enable import/extensions */
 
 /**
