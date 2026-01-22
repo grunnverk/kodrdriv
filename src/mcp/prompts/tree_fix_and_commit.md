@@ -23,7 +23,7 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
    - This will execute precommit checks (linting, type checking, tests, build) across all packages, respecting dependency order even in parallel mode
 
 2. **Handle Failures**
-   - **If the MCP tool fails**: The error message will indicate which package failed (e.g., "Command failed in package @eldrforge/tree-execution")
+   - **If the MCP tool fails**: The error message will indicate which package failed (e.g., "Command failed in package @grunnverk/tree-execution")
    - **DO NOT** switch to manual command-line execution - continue using the MCP tool with `start_from` parameter
    - Carefully analyze the error output to understand:
      - Which package failed
@@ -41,8 +41,8 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
    - After fixing issues, use `start_from` parameter to resume from the package that failed
    - **ALWAYS include `parallel=true`** when resuming - it significantly reduces wait time
    - This avoids re-running checks on packages that already passed, saving significant time in large projects
-   - Example: If package `@eldrforge/core` failed, run `kodrdriv_tree_precommit` with `start_from="@eldrforge/core"`, `parallel=true`, and `fix=true`
-   - The `start_from` parameter accepts either package name (e.g., `@eldrforge/core`) or directory name (e.g., `core`)
+   - Example: If package `@grunnverk/core` failed, run `kodrdriv_tree_precommit` with `start_from="@grunnverk/core"`, `parallel=true`, and `fix=true`
+   - The `start_from` parameter accepts either package name (e.g., `@grunnverk/core`) or directory name (e.g., `core`)
 
 4. **Iterate Until Success**
    - Repeat steps 2-3 until all packages pass precommit checks
@@ -71,8 +71,8 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
      fix: true,
      parallel: true  // CRITICAL: Speeds up execution significantly
    })
-   → Fails at package "@eldrforge/commands-git"
-   → Error: "Command failed in package @eldrforge/commands-git"
+   → Fails at package "@grunnverk/commands-git"
+   → Error: "Command failed in package @grunnverk/commands-git"
 
 2. Analyze error: TypeScript type error in src/git.ts:42
    → Fix the type error in the commands-git package
@@ -81,7 +81,7 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
      directory: "/Users/tobrien/gitw/grunnverk",
      fix: true,
      parallel: true,  // ALWAYS include parallel=true
-     start_from: "commands-git"  // or "@eldrforge/commands-git"
+     start_from: "commands-git"  // or "@grunnverk/commands-git"
    })
    → Continues from commands-git, may fail at next package
 

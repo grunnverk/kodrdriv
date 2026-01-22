@@ -18,7 +18,7 @@ Update dependencies to the latest published versions from npmjs for configured s
 
 1. Determine which scopes to update:
    - Check configuration for `updates.scopes` or `publish.scopedDependencyUpdates`
-   - If the current package has a scope (e.g., `@eldrforge/my-package`), include that scope
+   - If the current package has a scope (e.g., `@grunnverk/my-package`), include that scope
    - Use all configured scopes plus the package's own scope
 
 2. Run `kodrdriv_tree_updates`:
@@ -37,7 +37,7 @@ Update dependencies to the latest published versions from npmjs for configured s
 
 1. Determine which scopes to update:
    - Check configuration for `updates.scopes` or `publish.scopedDependencyUpdates`
-   - If the current package has a scope (e.g., `@eldrforge/my-package`), include that scope
+   - If the current package has a scope (e.g., `@grunnverk/my-package`), include that scope
    - Use all configured scopes plus the package's own scope
 
 2. Run `kodrdriv_updates`:
@@ -53,8 +53,8 @@ Update dependencies to the latest published versions from npmjs for configured s
    - Commit the changes with `kodrdriv_commit`
 
 **Example:**
-If package is `@eldrforge/my-package` and config has `scopedDependencyUpdates: ["@riotprompt"]`, update:
-- `@eldrforge/*` dependencies (package's own scope)
+If package is `@grunnverk/my-package` and config has `scopedDependencyUpdates: ["@riotprompt"]`, update:
+- `@grunnverk/*` dependencies (package's own scope)
 - `@riotprompt/*` dependencies (configured scope)
 
 **Verification:**
