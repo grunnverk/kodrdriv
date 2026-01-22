@@ -80,19 +80,19 @@ export default defineConfig({
         rollupOptions: {
             external: [
                 // Command packages
-                '@eldrforge/core',
-                '@eldrforge/commands-git',
-                '@eldrforge/commands-tree',
-                '@eldrforge/commands-publish',
-                '@eldrforge/commands-audio',
+                '@grunnverk/core',
+                '@grunnverk/commands-git',
+                '@grunnverk/commands-tree',
+                '@grunnverk/commands-publish',
+                '@grunnverk/commands-audio',
                 // Foundation packages
-                '@eldrforge/ai-service',
-                '@eldrforge/git-tools',
-                '@eldrforge/github-tools',
-                '@eldrforge/shared',
-                '@eldrforge/tree-core',
-                '@eldrforge/tree-execution',
-                '@eldrforge/audio-tools',
+                '@grunnverk/ai-service',
+                '@grunnverk/git-tools',
+                '@grunnverk/github-tools',
+                '@grunnverk/shared',
+                '@grunnverk/tree-core',
+                '@grunnverk/tree-execution',
+                '@grunnverk/audio-tools',
                 // MCP dependencies
                 '@modelcontextprotocol/sdk',
                 // External dependencies
