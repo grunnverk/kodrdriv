@@ -6,8 +6,8 @@ import { ALLOWED_COMMANDS, DEFAULT_CHARACTER_ENCODING, DEFAULT_COMMAND, KODRDRIV
 import { getLogger } from "./logging";
 const logger = getLogger();
 import { CommandConfig, Config, SecureConfig } from './types'; // Import the Config type from main.ts
-import { createStorage, readStdin } from "@eldrforge/shared";
-import { safeJsonParse } from '@eldrforge/git-tools';
+import { createStorage, readStdin } from "@grunnverk/shared";
+import { safeJsonParse } from '@grunnverk/git-tools';
 
 export const InputSchema = z.object({
     dryRun: z.boolean().optional(),

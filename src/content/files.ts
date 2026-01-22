@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { getLogger } from '../logging';
-import { createStorage } from '@eldrforge/shared';
+import { createStorage } from '@grunnverk/shared';
 import { glob } from 'glob';
 import path from 'path';
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { ExitError } from '@eldrforge/shared';
+import { ExitError } from '@grunnverk/shared';
 import { getLogger } from '../logging';
-import { run } from '@eldrforge/git-tools';
+import { run } from '@grunnverk/git-tools';
 import { DEFAULT_GIT_COMMAND_MAX_BUFFER } from '../constants';
 
 export interface Instance {

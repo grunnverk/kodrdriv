@@ -2,7 +2,7 @@
  * Kodrdriv-specific validation utilities
  *
  * Note: Generic validation functions (validateString, validateNumber, etc.)
- * are in @eldrforge/shared
+ * are in @grunnverk/shared
  */
 
 export interface ReleaseSummary {

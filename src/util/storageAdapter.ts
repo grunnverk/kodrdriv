@@ -2,8 +2,8 @@
  * Adapter for ai-service StorageAdapter using kodrdriv Storage
  */
 
-import type { StorageAdapter } from '@eldrforge/ai-service';
-import { createStorage } from '@eldrforge/shared';
+import type { StorageAdapter } from '@grunnverk/ai-service';
+import { createStorage } from '@grunnverk/shared';
 import path from 'path';
 
 /**

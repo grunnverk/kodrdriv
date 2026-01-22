@@ -3,7 +3,7 @@
  */
 
 import type { Config } from '../types';
-import type { AIConfig } from '@eldrforge/ai-service';
+import type { AIConfig } from '@grunnverk/ai-service';
 
 /**
  * Convert kodrdriv Config to AIConfig
