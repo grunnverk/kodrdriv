@@ -59,11 +59,11 @@ describe('URI Parser', () => {
         });
 
         it('should parse package URI with scope', () => {
-            const uri = 'kodrdriv://package/@eldrforge/kodrdriv';
+            const uri = 'kodrdriv://package/@grunnverk/kodrdriv';
             const result = parseKodrdrivUri(uri);
 
             expect(result.type).toBe('package');
-            expect(result.path).toBe('@eldrforge/kodrdriv');
+            expect(result.path).toBe('@grunnverk/kodrdriv');
         });
 
         it('should parse tree-graph URI', () => {
@@ -154,8 +154,8 @@ describe('URI Parser', () => {
         });
 
         it('should build package URI', () => {
-            const uri = buildPackageUri('@eldrforge/kodrdriv');
-            expect(uri).toBe('kodrdriv://package/@eldrforge/kodrdriv');
+            const uri = buildPackageUri('@grunnverk/kodrdriv');
+            expect(uri).toBe('kodrdriv://package/@grunnverk/kodrdriv');
         });
 
         it('should build recent-commits URI without count', () => {

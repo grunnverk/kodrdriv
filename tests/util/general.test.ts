@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { beforeEach, afterEach, vi } from 'vitest';
 
 // Mock git-tools functions used by general.ts
-vi.mock('@eldrforge/git-tools', () => ({
+vi.mock('@grunnverk/git-tools', () => ({
     runSecure: vi.fn(),
     validateGitRef: vi.fn(),
     safeJsonParse: vi.fn(),
@@ -18,8 +18,8 @@ vi.mock('../../src/util/general', async () => {
     };
 });
 
-// Mock @eldrforge/shared - use importOriginal to keep all real functions
-vi.mock('@eldrforge/shared', async (importOriginal) => {
+// Mock @grunnverk/shared - use importOriginal to keep all real functions
+vi.mock('@grunnverk/shared', async (importOriginal) => {
     const actual = await importOriginal() as any;
     return {
         ...actual,
@@ -28,7 +28,7 @@ vi.mock('@eldrforge/shared', async (importOriginal) => {
 });
 
 import { deepMerge, stringifyJSON, incrementPatchVersion, incrementMinorVersion, incrementMajorVersion, validateVersionString, calculateTargetVersion, checkIfTagExists, confirmVersionInteractively, getOutputPath, getTimestampedFilename, getTimestampedRequestFilename, getTimestampedResponseFilename, getTimestampedCommitFilename, getTimestampedReleaseNotesFilename, getTimestampedAudioFilename, getTimestampedTranscriptFilename, getTimestampedReviewFilename, getTimestampedReviewNotesFilename, getTimestampedArchivedAudioFilename, getTimestampedArchivedTranscriptFilename, incrementPrereleaseVersion, convertToReleaseVersion, calculateBranchDependentVersion, findDevelopmentBranch, haveSamePrereleaseTag, getVersionFromBranch } from '../../src/util/general';
-import { createStorage } from '@eldrforge/shared';
+import { createStorage } from '@grunnverk/shared';
 import * as fs from 'fs';
 import * as Logging from '../../src/logging';
 
@@ -772,7 +772,7 @@ describe('checkIfTagExists', () => {
     beforeEach(async () => {
         // Mock the dynamic import of git-tools module
         mockRun = vi.fn();
-        vi.doMock('@eldrforge/git-tools', () => ({
+        vi.doMock('@grunnverk/git-tools', () => ({
             run: mockRun,
             runSecure: mockRun, // Use the same mock for both since we're testing the same behavior
             validateGitRef: vi.fn(() => true),
@@ -789,7 +789,7 @@ describe('checkIfTagExists', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
-        vi.doUnmock('@eldrforge/git-tools');
+        vi.doUnmock('@grunnverk/git-tools');
     });
 
     test('should return true when tag exists', async () => {
@@ -1052,7 +1052,7 @@ describe('confirmVersionInteractively', () => {
     });
 });
 
-// archiveAudio tests moved to @eldrforge/audio-tools
+// archiveAudio tests moved to @grunnverk/audio-tools
 
 describe('Branch-dependent version targeting', () => {
     const mockLogger = {

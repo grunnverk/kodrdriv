@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs/promises';
 import * as cleanup from '../../src/utils/cleanup';
-import * as gitTools from '@eldrforge/git-tools';
+import * as gitTools from '@grunnverk/git-tools';
 
 vi.mock('fs/promises', async () => {
     const actual = await vi.importActual<typeof import('fs/promises')>('fs/promises');
@@ -16,7 +16,7 @@ vi.mock('fs/promises', async () => {
     };
 });
 
-vi.mock('@eldrforge/git-tools');
+vi.mock('@grunnverk/git-tools');
 
 describe('cleanup utilities', () => {
     beforeEach(() => {

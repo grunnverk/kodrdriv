@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ArgumentError } from '@eldrforge/shared';
+import { ArgumentError } from '@grunnverk/shared';
 
 describe('ArgumentError', () => {
     it('should create an ArgumentError with the correct name and message', () => {

@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 
 // Mock ESM modules
-vi.mock('@eldrforge/shared', () => ({
+vi.mock('@grunnverk/shared', () => ({
     createStorage: vi.fn().mockReturnValue({
         isFileReadable: vi.fn(),
         readFile: vi.fn()
@@ -30,7 +30,7 @@ describe('files', () => {
 
     beforeEach(async () => {
         // Import modules after mocking
-        const sharedModule = await import('@eldrforge/shared');
+        const sharedModule = await import('@grunnverk/shared');
         createStorage = sharedModule.createStorage;
         getLogger = await import('../../src/logging');
         glob = await import('glob');

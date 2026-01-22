@@ -5,8 +5,8 @@ vi.mock('@theunwalked/cardigantime', () => ({
     create: vi.fn()
 }));
 
-vi.mock('@eldrforge/shared', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('@eldrforge/shared')>();
+vi.mock('@grunnverk/shared', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@grunnverk/shared')>();
     return {
         ...actual,
         promptConfirmation: vi.fn(),
@@ -36,26 +36,26 @@ vi.mock('../src/arguments', () => ({
 }));
 
 // Mock the new extracted command packages
-vi.mock('@eldrforge/commands-git', () => ({
+vi.mock('@grunnverk/commands-git', () => ({
     commit: vi.fn(),
     precommit: vi.fn(),
     clean: vi.fn(),
     review: vi.fn()
 }));
 
-vi.mock('@eldrforge/commands-audio', () => ({
+vi.mock('@grunnverk/commands-audio', () => ({
     audioCommit: vi.fn(),
     audioReview: vi.fn(),
     selectAudio: vi.fn()
 }));
 
-vi.mock('@eldrforge/commands-publish', () => ({
+vi.mock('@grunnverk/commands-publish', () => ({
     release: vi.fn(),
     publish: vi.fn(),
     development: vi.fn()
 }));
 
-vi.mock('@eldrforge/commands-tree', () => ({
+vi.mock('@grunnverk/commands-tree', () => ({
     tree: vi.fn(),
     link: vi.fn(),
     unlink: vi.fn(),
@@ -130,10 +130,10 @@ describe('Application module', () => {
         Logging = await import('../src/logging');
         Arguments = await import('../src/arguments');
         Commands = {
-            Git: await import('@eldrforge/commands-git'),
-            Audio: await import('@eldrforge/commands-audio'),
-            Publish: await import('@eldrforge/commands-publish'),
-            Tree: await import('@eldrforge/commands-tree'),
+            Git: await import('@grunnverk/commands-git'),
+            Audio: await import('@grunnverk/commands-audio'),
+            Publish: await import('@grunnverk/commands-publish'),
+            Tree: await import('@grunnverk/commands-tree'),
         };
         Application = await import('../src/application');
 
