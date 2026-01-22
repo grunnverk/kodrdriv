@@ -5,7 +5,7 @@ Get started with KodrDriv's MCP integration in under 5 minutes.
 ## Installation
 
 ```bash
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 ```
 
 ## Using with Cursor
@@ -66,9 +66,9 @@ You: "Publish all changed packages in the monorepo"
 
 AI: [Uses kodrdriv_tree_publish tool]
     Publishing packages in dependency order:
-    1. @eldrforge/core
-    2. @eldrforge/git-tools
-    3. @eldrforge/kodrdriv
+    1. @grunnverk/core
+    2. @grunnverk/git-tools
+    3. @grunnverk/kodrdriv
 ```
 
 ## Available Features
@@ -125,7 +125,7 @@ If configured correctly, Cursor will show all 13 tools.
 
 **Solution**: Ensure kodrdriv is installed globally:
 ```bash
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 which kodrdriv-mcp  # Should show path
 ```
 

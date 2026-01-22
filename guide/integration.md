@@ -40,7 +40,7 @@ jobs:
           node-version: '20'
 
       - name: Install kodrdriv
-        run: npm install -g @eldrforge/kodrdriv
+        run: npm install -g @grunnverk/kodrdriv
 
       - name: Generate Release Notes
         env:
@@ -64,7 +64,7 @@ jobs:
 release:
   stage: deploy
   script:
-    - npm install -g @eldrforge/kodrdriv
+    - npm install -g @grunnverk/kodrdriv
     - kodrdriv release
     - # Use generated notes in output/RELEASE_NOTES.md
   only:
@@ -117,9 +117,9 @@ npm run release:publish
 
 1. **Install kodrdriv**:
 ```bash
-npm install --save-dev @eldrforge/kodrdriv
+npm install --save-dev @grunnverk/kodrdriv
 # or globally
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 ```
 
 2. **Initialize configuration**:
@@ -153,7 +153,7 @@ kodrdriv release --dry-run
 1. **Install in root**:
 ```bash
 cd /path/to/monorepo
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 ```
 
 2. **Configure tree operations**:

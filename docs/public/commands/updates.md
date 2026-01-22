@@ -3,7 +3,7 @@
 Update dependencies across your project or monorepo with scoped updates, dependency reports, and AI-powered analysis:
 
 ```bash
-kodrdriv updates @eldrforge
+kodrdriv updates @grunnverk
 kodrdriv tree updates --report
 kodrdriv updates --analyze
 ```
@@ -17,11 +17,11 @@ The `updates` command provides powerful dependency management capabilities:
 ## Quick Start
 
 ```bash
-# Update all @eldrforge packages to latest
-kodrdriv updates @eldrforge
+# Update all @grunnverk packages to latest
+kodrdriv updates @grunnverk
 
 # Update across entire monorepo
-kodrdriv tree updates @eldrforge
+kodrdriv tree updates @grunnverk
 
 # Generate dependency report
 kodrdriv tree updates --report
@@ -35,20 +35,20 @@ kodrdriv updates --analyze
 Update packages matching a specific npm scope using [npm-check-updates](https://www.npmjs.com/package/npm-check-updates):
 
 ```bash
-# Update @eldrforge packages in current project
-kodrdriv updates @eldrforge
+# Update @grunnverk packages in current project
+kodrdriv updates @grunnverk
 
 # Update @riotprompt packages
 kodrdriv updates @riotprompt
 
 # Update across all packages in monorepo
-kodrdriv tree updates @eldrforge
+kodrdriv tree updates @grunnverk
 ```
 
 ### How It Works
 
 1. Scans `package.json` for dependencies, devDependencies, and peerDependencies
-2. Filters to packages matching the scope (e.g., `@eldrforge/*`)
+2. Filters to packages matching the scope (e.g., `@grunnverk/*`)
 3. Runs `ncu` (npm-check-updates) to find latest versions
 4. Updates `package.json` with new versions
 5. Optionally runs `npm install` to update lock file
@@ -60,7 +60,7 @@ Configure default scopes in `.kodrdriv/config.yaml` to run updates without speci
 ```yaml
 updates:
   scopes:
-    - "@eldrforge"
+    - "@grunnverk"
     - "@riotprompt"
     - "@theunwalked"
 ```
@@ -75,7 +75,7 @@ Alternatively, use the publish configuration for consistency:
 ```yaml
 publish:
   scopedDependencyUpdates:
-    - "@eldrforge"
+    - "@grunnverk"
     - "@riotprompt"
 ```
 
@@ -84,8 +84,8 @@ publish:
 Synchronize dependency versions across packages in a monorepo:
 
 ```bash
-kodrdriv updates --inter-project @eldrforge
-kodrdriv tree updates --inter-project @eldrforge
+kodrdriv updates --inter-project @grunnverk
+kodrdriv tree updates --inter-project @grunnverk
 ```
 
 ### How It Works
@@ -122,11 +122,11 @@ Lists packages with inconsistent versions across your monorepo:
 ┌─ 🔴 VERSION CONFLICTS (3 packages)
 │
 │  ├─ openai
-│  │     ^4.87.3 (used by: @eldrforge/core, @eldrforge/commands-git)
-│  │     ^6.15.0 (used by: @eldrforge/ai-service)
+│  │     ^4.87.3 (used by: @grunnverk/core, @grunnverk/commands-git)
+│  │     ^6.15.0 (used by: @grunnverk/ai-service)
 │  │
 │  ├─ zod
-│  │     ^3.24.2 (used by: @eldrforge/core)
+│  │     ^3.24.2 (used by: @grunnverk/core)
 │  │     ^4.0.2 (used by: @riotprompt/riotprompt)
 ```
 
@@ -147,7 +147,7 @@ Breakdown of dependency counts per package:
 ```
 ┌─ 📋 PACKAGE SUMMARIES
 │
-│  ├─ @eldrforge/kodrdriv
+│  ├─ @grunnverk/kodrdriv
 │  │     Dependencies: 15
 │  │     DevDependencies: 22
 │  │     PeerDependencies: 0
@@ -247,7 +247,7 @@ kodrdriv updates --analyze --strategy compatible
 │  │     Current: ^4.87.3, ^6.15.0
 │  │     Recommended: ^6.15.0
 │  │     Reason: Required by @riotprompt/riotprompt peer dependency
-│  │     Affects: @eldrforge/core, @eldrforge/commands-git
+│  │     Affects: @grunnverk/core, @grunnverk/commands-git
 │  │
 │  ├─ 🟡 zod
 │  │     Current: ^3.24.2
@@ -269,7 +269,7 @@ kodrdriv updates --analyze --strategy compatible
 ## Command Options
 
 ### Basic Options
-- `[scope]`: npm scope to update (e.g., `@eldrforge`)
+- `[scope]`: npm scope to update (e.g., `@grunnverk`)
 - `--directories [dirs...]`: Directories to scan (tree mode)
 
 ### Update Modes
@@ -288,11 +288,11 @@ kodrdriv updates --analyze --strategy compatible
 ### Basic Scoped Updates
 
 ```bash
-# Update @eldrforge packages
-kodrdriv updates @eldrforge
+# Update @grunnverk packages
+kodrdriv updates @grunnverk
 
 # Update multiple scopes (run multiple times or configure defaults)
-kodrdriv updates @eldrforge
+kodrdriv updates @grunnverk
 kodrdriv updates @riotprompt
 ```
 
@@ -300,13 +300,13 @@ kodrdriv updates @riotprompt
 
 ```bash
 # Update across all packages in monorepo
-kodrdriv tree updates @eldrforge
+kodrdriv tree updates @grunnverk
 
 # Use configured default scopes
 kodrdriv tree updates
 
 # Dry run to see what would change
-kodrdriv tree updates @eldrforge --dry-run
+kodrdriv tree updates @grunnverk --dry-run
 ```
 
 ### Dependency Analysis
@@ -338,11 +338,11 @@ kodrdriv updates --analyze --verbose --debug
 ### Inter-Project Synchronization
 
 ```bash
-# Sync @eldrforge versions across packages
-kodrdriv updates --inter-project @eldrforge
+# Sync @grunnverk versions across packages
+kodrdriv updates --inter-project @grunnverk
 
 # Tree-wide sync
-kodrdriv tree updates --inter-project @eldrforge
+kodrdriv tree updates --inter-project @grunnverk
 ```
 
 ## Configuration
@@ -353,7 +353,7 @@ kodrdriv tree updates --inter-project @eldrforge
 # .kodrdriv/config.yaml
 updates:
   scopes:
-    - "@eldrforge"
+    - "@grunnverk"
     - "@riotprompt"
     - "@theunwalked"
 ```
@@ -363,7 +363,7 @@ updates:
 ```yaml
 updates:
   scopes:
-    - "@eldrforge"
+    - "@grunnverk"
   # These are also available via CLI flags
   # report: false
   # analyze: false
@@ -375,7 +375,7 @@ updates:
 ```yaml
 publish:
   scopedDependencyUpdates:
-    - "@eldrforge"
+    - "@grunnverk"
     - "@riotprompt"
 ```
 
@@ -395,11 +395,11 @@ kodrdriv updates --analyze
 ### Before Publishing
 ```bash
 # Ensure all dependencies are current
-kodrdriv tree updates @eldrforge
+kodrdriv tree updates @grunnverk
 kodrdriv tree updates @riotprompt
 
 # Sync inter-project versions
-kodrdriv tree updates --inter-project @eldrforge
+kodrdriv tree updates --inter-project @grunnverk
 ```
 
 ### Reviewing AI Recommendations
@@ -429,7 +429,7 @@ kodrdriv tree updates --report
 kodrdriv tree updates @riotprompt
 
 # 3. Sync internal dependencies
-kodrdriv tree updates --inter-project @eldrforge
+kodrdriv tree updates --inter-project @grunnverk
 
 # 4. Commit dependency updates
 kodrdriv tree commit
@@ -443,7 +443,7 @@ kodrdriv tree publish
 ### "No scope specified" Error
 Either provide a scope or configure defaults:
 ```bash
-kodrdriv updates @eldrforge  # Provide scope
+kodrdriv updates @grunnverk  # Provide scope
 
 # Or configure defaults in .kodrdriv/config.yaml
 ```

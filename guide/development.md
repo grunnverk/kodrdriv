@@ -170,13 +170,13 @@ describe('MyCommand', () => {
 
 ```typescript
 // Mock git-tools
-vi.mock('@eldrforge/git-tools', () => ({
+vi.mock('@grunnverk/git-tools', () => ({
   run: vi.fn(),
   validateString: vi.fn(v => v)
 }));
 
 // Mock ai-service
-vi.mock('@eldrforge/ai-service', () => ({
+vi.mock('@grunnverk/ai-service', () => ({
   runAgenticCommit: vi.fn().mockResolvedValue({
     commitMessage: 'test message',
     iterations: 5
@@ -362,7 +362,7 @@ const result: Result = await operation();
 
 ```typescript
 // Use custom error types
-import { ValidationError, CommandError } from '@eldrforge/shared';
+import { ValidationError, CommandError } from '@grunnverk/shared';
 
 // Throw with context
 throw new ValidationError('Invalid input', { field: 'username' });
@@ -408,7 +408,7 @@ npm link
 
 # Use in kodrdriv
 cd ../kodrdriv
-npm link @eldrforge/ai-service
+npm link @grunnverk/ai-service
 ```
 
 ### Working on tree-core
@@ -428,7 +428,7 @@ npm link
 
 # Use in kodrdriv
 cd ../kodrdriv
-npm link @eldrforge/tree-core
+npm link @grunnverk/tree-core
 ```
 
 ### Testing Cross-Package Changes
@@ -444,12 +444,12 @@ cd ../github-tools && npm link
 
 # Link in kodrdriv
 cd ../kodrdriv
-npm link @eldrforge/ai-service
-npm link @eldrforge/tree-core
-npm link @eldrforge/tree-execution
-npm link @eldrforge/shared
-npm link @eldrforge/git-tools
-npm link @eldrforge/github-tools
+npm link @grunnverk/ai-service
+npm link @grunnverk/tree-core
+npm link @grunnverk/tree-execution
+npm link @grunnverk/shared
+npm link @grunnverk/git-tools
+npm link @grunnverk/github-tools
 
 # Or use kodrdriv itself
 kodrdriv tree link
@@ -522,7 +522,7 @@ npm outdated
 npm update
 
 # Update specific
-npm install @eldrforge/ai-service@latest
+npm install @grunnverk/ai-service@latest
 
 # Update across all packages
 kodrdriv tree --cmd "npm update"

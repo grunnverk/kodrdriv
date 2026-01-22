@@ -182,8 +182,8 @@ Update dependencies across all packages with scoped updates, dependency reports,
 
 **Usage:**
 ```bash
-# Update @eldrforge packages across all packages
-kodrdriv tree updates @eldrforge
+# Update @grunnverk packages across all packages
+kodrdriv tree updates @grunnverk
 
 # Use configured default scopes
 kodrdriv tree updates
@@ -198,11 +198,11 @@ kodrdriv tree updates --analyze
 kodrdriv tree updates --analyze --strategy conservative
 
 # Sync inter-project dependencies
-kodrdriv tree updates --inter-project @eldrforge
+kodrdriv tree updates --inter-project @grunnverk
 ```
 
 **Key Features:**
-- **Scoped Updates**: Update only packages matching specific scopes (`@eldrforge/*`)
+- **Scoped Updates**: Update only packages matching specific scopes (`@grunnverk/*`)
 - **Dependency Reports**: Comprehensive analysis of conflicts and shared dependencies
 - **AI Analysis**: Intelligent upgrade recommendations with version compatibility checking
 - **Inter-project Sync**: Keep internal package versions synchronized
@@ -230,7 +230,7 @@ kodrdriv tree updates --inter-project @eldrforge
 ```yaml
 updates:
   scopes:
-    - "@eldrforge"
+    - "@grunnverk"
     - "@riotprompt"
 ```
 
@@ -693,11 +693,11 @@ A subtle but critical issue can occur when local development versions conflict w
    - Before starting development, bump ALL packages to a version that has never been published
    - Example: If `1.0.0` was the last release, use `1.1.0-dev.0` or `2.0.0-dev.0`
    - This ensures npm cannot resolve to a published version during publishing
-   
+
    ```bash
    # Good: 1.0.0 is published, development uses 1.1.0-dev.0
    # npm will fail to find 1.1.0, forcing linked resolution
-   
+
    # Bad: 1.0.0 is published, development uses 1.0.0-dev.1
    # npm may find 1.0.0 and use it instead of local changes
    ```

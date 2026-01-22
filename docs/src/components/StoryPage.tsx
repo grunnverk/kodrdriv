@@ -98,7 +98,7 @@ function StoryPage() {
                                 A teammate responds: "Have you installed KodrDriv yet? It can help with that."
                             </p>
                             <p>
-                                One command: <code className="inline-code">npx @eldrforge/kodrdriv commit</code>
+                                One command: <code className="inline-code">npx @grunnverk/kodrdriv commit</code>
                             </p>
                             <div className="commit-message-box">
                                 <code className="block-code">{`feat(auth): implement OAuth2 flow
@@ -224,7 +224,7 @@ piratespeak on Tuesdays.`}</code>
                                 written them before."
                             </p>
                             <p>
-                                "Easy," came the reply. "Just run <code className="inline-code">npx @eldrforge/kodrdriv release</code>"
+                                "Easy," came the reply. "Just run <code className="inline-code">npx @grunnverk/kodrdriv release</code>"
                             </p>
                             <p>
                                 "Oh, and just so you know — there's a different persona for generating release notes,
@@ -277,7 +277,7 @@ piratespeak on Tuesdays.`}</code>
                                 a few GitHub issues automatically."
                             </p>
                             <p>
-                                "Wait, what? <code className="inline-code">npx @eldrforge/kodrdriv review</code> does that?"
+                                "Wait, what? <code className="inline-code">npx @grunnverk/kodrdriv review</code> does that?"
                             </p>
                             <p>
                                 "Yeah, just run it and it'll start up your EDITOR and you can send it pages and pages of feedback.

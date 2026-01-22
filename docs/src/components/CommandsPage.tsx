@@ -89,7 +89,7 @@ function CommandsPage() {
                         <a href="https://github.com/grunnverk/kodrdriv" target="_blank" rel="noopener noreferrer">
                             GitHub
                         </a>
-                        <a href="https://www.npmjs.com/package/@eldrforge/kodrdriv" target="_blank" rel="noopener noreferrer">
+                        <a href="https://www.npmjs.com/package/@grunnverk/kodrdriv" target="_blank" rel="noopener noreferrer">
                             NPM
                         </a>
                     </div>

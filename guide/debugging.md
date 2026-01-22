@@ -132,14 +132,14 @@ commit:
   skipFileCheck: true
 ```
 
-### 5. "Cannot find module @eldrforge/..."
+### 5. "Cannot find module @grunnverk/..."
 
 **Symptom**: Module not found errors
 
 **Solutions**:
 ```bash
 # For global install
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 
 # For local install
 cd /path/to/kodrdriv
@@ -148,7 +148,7 @@ npm link
 
 # Check installation
 which kodrdriv
-npm list -g @eldrforge/kodrdriv
+npm list -g @grunnverk/kodrdriv
 ```
 
 ### 6. AI Output is Poor Quality

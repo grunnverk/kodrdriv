@@ -42,45 +42,45 @@ For complete architecture documentation, see: [`docs/public/architecture.md`](..
 
 ### Core Packages
 
-**@eldrforge/kodrdriv** (main package)
+**@grunnverk/kodrdriv** (main package)
 - CLI interface
 - Command implementations
 - Configuration management
 - Workflow orchestration
 
-**@eldrforge/ai-service** (AI integration)
+**@grunnverk/ai-service** (AI integration)
 - Agentic AI system with tool-calling
 - Prompt engineering
 - OpenAI API integration
 - Interactive workflows
 
-**@eldrforge/tree-core** (dependency analysis)
+**@grunnverk/tree-core** (dependency analysis)
 - Dependency graph algorithms
 - Topological sorting
 - Package discovery
 
-**@eldrforge/tree-execution** (parallel execution)
+**@grunnverk/tree-execution** (parallel execution)
 - Parallel task execution
 - Checkpoint/recovery system
 - Progress monitoring
 
-**@eldrforge/git-tools** (Git operations)
+**@grunnverk/git-tools** (Git operations)
 - Git command wrappers
 - History parsing
 - Diff processing
 
-**@eldrforge/github-tools** (GitHub integration)
+**@grunnverk/github-tools** (GitHub integration)
 - GitHub API wrapper
 - PR management
 - Issue handling
 - Release creation
 
-**@eldrforge/audio-tools** (audio processing)
+**@grunnverk/audio-tools** (audio processing)
 - Audio recording
 - Device selection
 - File processing
 
-**@eldrforge/shared** (common utilities)
+**@grunnverk/shared** (common utilities)
 - Storage utilities
 - Date/time functions
 - Validation helpers

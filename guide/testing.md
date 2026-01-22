@@ -130,19 +130,19 @@ describe('MyCommand', () => {
 **Mock External APIs**:
 ```typescript
 // Mock OpenAI
-vi.mock('@eldrforge/ai-service', () => ({
+vi.mock('@grunnverk/ai-service', () => ({
   runAgenticCommit: vi.fn().mockResolvedValue({
     commitMessage: 'mock message'
   })
 }));
 
 // Mock Git
-vi.mock('@eldrforge/git-tools', () => ({
+vi.mock('@grunnverk/git-tools', () => ({
   run: vi.fn().mockResolvedValue({ stdout: 'output' })
 }));
 
 // Mock GitHub
-vi.mock('@eldrforge/github-tools', () => ({
+vi.mock('@grunnverk/github-tools', () => ({
   createPullRequest: vi.fn().mockResolvedValue({
     number: 123,
     html_url: 'https://github.com/...'
@@ -152,7 +152,7 @@ vi.mock('@eldrforge/github-tools', () => ({
 
 **Mock File System**:
 ```typescript
-vi.mock('@eldrforge/shared', () => ({
+vi.mock('@grunnverk/shared', () => ({
   createStorage: vi.fn().mockReturnValue({
     readFile: vi.fn(),
     writeFile: vi.fn(),

@@ -203,7 +203,7 @@ If you're an AI helping someone use kodrdriv:
 
 If you're integrating kodrdriv:
 
-1. **Install**: `npm install -g @eldrforge/kodrdriv`
+1. **Install**: `npm install -g @grunnverk/kodrdriv`
 2. **Configure**: `kodrdriv --init-config`
 3. **Try it**: `kodrdriv commit --dry-run`
 4. **Customize**: Edit `.kodrdriv/config.yaml`

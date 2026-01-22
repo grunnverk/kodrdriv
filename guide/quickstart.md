@@ -12,7 +12,7 @@ Get kodrdriv working in 5 minutes.
 ## Installation
 
 ```bash
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 ```
 
 ## Setup
@@ -218,7 +218,7 @@ kodrdriv commit --add --sendit
 ### "Cannot find module"
 ```bash
 # Reinstall globally
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 
 # Or link for development
 cd /path/to/kodrdriv

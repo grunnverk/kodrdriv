@@ -128,7 +128,7 @@ Get information about a specific package.
 
 **Example:**
 ```
-kodrdriv://package/@eldrforge/kodrdriv
+kodrdriv://package/@grunnverk/kodrdriv
 ```
 
 **Returns:**
