@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as branchState from '../../src/utils/branchState';
-import * as gitTools from '@eldrforge/git-tools';
+import * as gitTools from '@grunnverk/git-tools';
 import * as gitMutex from '../../src/util/gitMutex';
 
-vi.mock('@eldrforge/git-tools');
+vi.mock('@grunnverk/git-tools');
 vi.mock('../../src/util/gitMutex');
 
 describe('branchState utilities', () => {

@@ -960,7 +960,7 @@ For detailed documentation, see [Pull Command](commands/pull.md).
 Update dependencies with scoped updates, dependency reports, and AI-powered analysis:
 
 ```bash
-kodrdriv updates @eldrforge
+kodrdriv updates @grunnverk
 kodrdriv tree updates --report
 kodrdriv updates --analyze
 ```
@@ -972,7 +972,7 @@ The `updates` command provides powerful dependency management:
 
 ### Updates Command Options
 
-- `[scope]`: npm scope to update (e.g., `@eldrforge`)
+- `[scope]`: npm scope to update (e.g., `@grunnverk`)
 - `--directories [dirs...]`: Directories to scan (tree mode)
 - `--inter-project`: Sync inter-project dependency versions
 - `--report`: Generate dependency analysis report
@@ -985,8 +985,8 @@ The `updates` command provides powerful dependency management:
 ### Examples
 
 ```bash
-# Update @eldrforge packages
-kodrdriv updates @eldrforge
+# Update @grunnverk packages
+kodrdriv updates @grunnverk
 
 # Use configured default scopes
 kodrdriv tree updates
@@ -1001,7 +1001,7 @@ kodrdriv updates --analyze
 kodrdriv updates --analyze --strategy conservative
 
 # Sync inter-project versions
-kodrdriv tree updates --inter-project @eldrforge
+kodrdriv tree updates --inter-project @grunnverk
 ```
 
 ### Configuration
@@ -1010,7 +1010,7 @@ kodrdriv tree updates --inter-project @eldrforge
 # .kodrdriv/config.yaml
 updates:
   scopes:
-    - "@eldrforge"
+    - "@grunnverk"
     - "@riotprompt"
 ```
 

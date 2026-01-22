@@ -1,9 +1,9 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
-import { ExitError } from '@eldrforge/shared';
+import { ExitError } from '@grunnverk/shared';
 import { DEFAULT_GIT_COMMAND_MAX_BUFFER } from '../../src/constants';
 
 // Mock ESM modules
-vi.mock('@eldrforge/git-tools', () => ({
+vi.mock('@grunnverk/git-tools', () => ({
     run: vi.fn(),
     runSecure: vi.fn(),
     runSecureWithInheritedStdio: vi.fn(),
@@ -32,7 +32,7 @@ describe('log', () => {
 
     beforeEach(async () => {
         // Import modules after mocking
-        run = await import('@eldrforge/git-tools');
+        run = await import('@grunnverk/git-tools');
         getLogger = await import('../../src/logging');
         Log = await import('../../src/content/log');
     });

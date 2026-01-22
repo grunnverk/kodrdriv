@@ -230,7 +230,7 @@ The main CLI is built with Vite (configured in `vite.config.ts`):
 
 The MCP server is built with esbuild (via `scripts/build-mcp.js`):
 - Bundles the server code
-- External dependencies: MCP SDK, eldrforge packages, etc.
+- External dependencies: MCP SDK, grunnverk packages, etc.
 - Entry point: `src/mcp/server.ts`
 - Output: `dist/mcp-server.js`
 - Includes shebang for executable permissions

@@ -79,7 +79,7 @@ function LandingPage() {
                             <a href="https://github.com/grunnverk/kodrdriv" target="_blank" rel="noopener noreferrer">
                                 GitHub
                             </a>
-                            <a href="https://www.npmjs.com/package/@eldrforge/kodrdriv" target="_blank" rel="noopener noreferrer">
+                            <a href="https://www.npmjs.com/package/@grunnverk/kodrdriv" target="_blank" rel="noopener noreferrer">
                                 NPM
                             </a>
                         </div>
@@ -411,7 +411,7 @@ function LandingPage() {
                                 </div>
                                 <div className="terminal-content">
                                     <div className="terminal-line">
-                                        <span className="prompt">$</span> npm install -g @eldrforge/kodrdriv
+                                        <span className="prompt">$</span> npm install -g @grunnverk/kodrdriv
                                     </div>
                                     <div className="terminal-line">
                                         <span className="prompt">$</span> kodrdriv --init-config
@@ -457,7 +457,7 @@ function LandingPage() {
                             <div className="footer-section">
                                 <h4>Resources</h4>
                                 <a href="https://github.com/grunnverk/kodrdriv" target="_blank" rel="noopener noreferrer">GitHub</a>
-                                <a href="https://www.npmjs.com/package/@eldrforge/kodrdriv" target="_blank" rel="noopener noreferrer">NPM</a>
+                                <a href="https://www.npmjs.com/package/@grunnverk/kodrdriv" target="_blank" rel="noopener noreferrer">NPM</a>
                                 <a href="/kodrdriv/customization">Customization</a>
                             </div>
                         </div>

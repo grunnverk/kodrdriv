@@ -29,7 +29,7 @@ KodrDriv reads your code changes and Git history to automatically generate conte
 Install KodrDriv globally using npm:
 
 ```bash
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 ```
 
 This will make the `kodrdriv` command available globally on your system.

@@ -6,5 +6,5 @@ updates:
       interval: "weekly"
     ignore:
       # Ignore local file dependencies - these are managed manually
-      - dependency-name: "@eldrforge/github-tools"
-      - dependency-name: "@eldrforge/git-tools"
+      - dependency-name: "@grunnverk/github-tools"
+      - dependency-name: "@grunnverk/git-tools"

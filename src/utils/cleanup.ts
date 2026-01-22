@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { getLogger } from '../logging';
-import { run } from '@eldrforge/git-tools';
+import { run } from '@grunnverk/git-tools';
 
 export interface CleanupOptions {
     maxRetries?: number;

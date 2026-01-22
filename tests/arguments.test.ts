@@ -3,11 +3,11 @@ import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as argumentsModule from '../src/arguments';
 import { Input, InputSchema, transformCliArgs, validateCommand, validateContextDirectories, getCliConfig, validateAndProcessSecureOptions, validateAndProcessOptions, validateConfigDir, configure } from '../src/arguments';
-import { readStdin } from '@eldrforge/shared';
+import { readStdin } from '@grunnverk/shared';
 import type { Cardigantime } from '@theunwalked/cardigantime';
 import { ALLOWED_COMMANDS, KODRDRIV_DEFAULTS, DEFAULT_CHARACTER_ENCODING } from '../src/constants';
 
-// readStdin is now mocked in the @eldrforge/shared mock below
+// readStdin is now mocked in the @grunnverk/shared mock below
 import { CommandConfig, Config, SecureConfig } from '../src/types';
 import { Mock } from 'vitest';
 import { ZodError } from 'zod';
@@ -47,7 +47,7 @@ vi.mock('../src/logging', () => {
 });
 
 // Mock the storage module here, using a factory for createStorage's return value
-vi.mock('@eldrforge/shared', async () => {
+vi.mock('@grunnverk/shared', async () => {
     // Create mock storage inside the factory
     const mockStorage = {
         exists: vi.fn(),
@@ -70,7 +70,7 @@ vi.mock('@eldrforge/shared', async () => {
 
 // Import the mocked modules to access their mocks
 import * as loggingModule from '../src/logging';
-import * as storageModule from '@eldrforge/shared';
+import * as storageModule from '@grunnverk/shared';
 
 // Get references to the mocked objects
 const mockLogger = (loggingModule.getLogger as any)();
@@ -1537,7 +1537,7 @@ describe('Argument Parsing and Configuration', () => {
         beforeEach(async () => { // Make async to allow await import
             // Dynamically import the mocked modules
             MockedLogging = await import('../src/logging');
-            // MockedStorage = await import('@eldrforge/shared'); // Import if needed
+            // MockedStorage = await import('@grunnverk/shared'); // Import if needed
 
             // Reset mock function states for the new test
             mockLogger.warn.mockClear(); // Already present for logger

@@ -39,7 +39,7 @@ If you need to upgrade Node.js, visit [nodejs.org](https://nodejs.org/) or use a
 ## Installation
 
 ```bash
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 ```
 
 ## 🤖 MCP Integration

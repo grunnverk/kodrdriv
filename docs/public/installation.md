@@ -6,17 +6,17 @@
 
 ```bash
 # Install globally via npm
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 
 # Or with npm (recommended)
-npm add -g @eldrforge/kodrdriv
+npm add -g @grunnverk/kodrdriv
 ```
 
 ### Via Yarn
 
 ```bash
 # Install globally via yarn
-yarn global add @eldrforge/kodrdriv
+yarn global add @grunnverk/kodrdriv
 ```
 
 ### Verify Installation
@@ -33,7 +33,7 @@ npm is the default package manager for Node.js and provides excellent compatibil
 
 ```bash
 # Using npm (fast, well-supported)
-npm add -g @eldrforge/kodrdriv
+npm add -g @grunnverk/kodrdriv
 ```
 
 npm offers:
@@ -48,7 +48,7 @@ npm offers:
 
 ```bash
 # Using yarn
-yarn global add @eldrforge/kodrdriv
+yarn global add @grunnverk/kodrdriv
 ```
 
 
@@ -138,20 +138,20 @@ This creates a configuration file in `~/.kodrdriv/config.yaml` where you can cus
 
 ```bash
 # Or with npm
-npm update -g @eldrforge/kodrdriv
+npm update -g @grunnverk/kodrdriv
 ```
 
 ### Yarn
 
 ```bash
-yarn global upgrade @eldrforge/kodrdriv
+yarn global upgrade @grunnverk/kodrdriv
 ```
 
 ## Uninstalling
 
 ```bash
 # Or with npm
-npm remove -g @eldrforge/kodrdriv
+npm remove -g @grunnverk/kodrdriv
 
 # Remove configuration (optional)
 rm -rf ~/.kodrdriv

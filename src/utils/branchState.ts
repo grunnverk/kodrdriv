@@ -1,4 +1,4 @@
-import { run } from '@eldrforge/git-tools';
+import { run } from '@grunnverk/git-tools';
 import { getLogger } from '../logging';
 import { getGitRepositoryRoot, isInGitRepository } from '../util/gitMutex';
 
@@ -147,7 +147,7 @@ export async function checkBranchStatus(
         if (checkPR) {
             try {
                 logger.verbose(`    Checking GitHub for existing PRs...`);
-                const { findOpenPullRequestByHeadRef } = await import('@eldrforge/github-tools');
+                const { findOpenPullRequestByHeadRef } = await import('@grunnverk/github-tools');
                 const pr = await (findOpenPullRequestByHeadRef as any)(branch, packagePath);
                 if (pr) {
                     hasOpenPR = true;

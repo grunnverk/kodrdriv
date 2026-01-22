@@ -1,23 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { tools, executeTool } from '../../src/mcp/tools.js';
-import * as CommandsGit from '@eldrforge/commands-git';
-import * as CommandsTree from '@eldrforge/commands-tree';
-import * as CommandsPublish from '@eldrforge/commands-publish';
+import * as CommandsGit from '@grunnverk/commands-git';
+import * as CommandsTree from '@grunnverk/commands-tree';
+import * as CommandsPublish from '@grunnverk/commands-publish';
 
 // Mock the command modules
-vi.mock('@eldrforge/commands-git', () => ({
+vi.mock('@grunnverk/commands-git', () => ({
     commit: vi.fn(),
     precommit: vi.fn(),
     review: vi.fn(),
     pull: vi.fn(),
 }));
 
-vi.mock('@eldrforge/commands-tree', () => ({
+vi.mock('@grunnverk/commands-tree', () => ({
     tree: vi.fn(),
     updates: vi.fn(),
 }));
 
-vi.mock('@eldrforge/commands-publish', () => ({
+vi.mock('@grunnverk/commands-publish', () => ({
     publish: vi.fn(),
     release: vi.fn(),
     development: vi.fn(),

@@ -1,12 +1,12 @@
 import path from 'path';
-import { deepMerge, stringifyJSON, incrementPatchVersion, incrementMinorVersion, incrementMajorVersion, validateVersionString, calculateTargetVersion, incrementPrereleaseVersion, convertToReleaseVersion } from '@eldrforge/shared';
+import { deepMerge, stringifyJSON, incrementPatchVersion, incrementMinorVersion, incrementMajorVersion, validateVersionString, calculateTargetVersion, incrementPrereleaseVersion, convertToReleaseVersion } from '@grunnverk/shared';
 import { getLogger } from '../logging';
 
 /**
  * Get version from a specific branch's package.json
  */
 export const getVersionFromBranch = async (branchName: string): Promise<string | null> => {
-    const { runSecure, validateGitRef, safeJsonParse, validatePackageJson } = await import('@eldrforge/git-tools');
+    const { runSecure, validateGitRef, safeJsonParse, validatePackageJson } = await import('@grunnverk/git-tools');
 
     try {
         // Validate branch name to prevent injection
@@ -185,7 +185,7 @@ export const haveSamePrereleaseTag = (version1: string, version2: string): boole
 };
 
 export const checkIfTagExists = async (tagName: string): Promise<boolean> => {
-    const { runSecure, validateGitRef } = await import('@eldrforge/git-tools');
+    const { runSecure, validateGitRef } = await import('@grunnverk/git-tools');
     try {
         // Validate tag name to prevent injection
         if (!validateGitRef(tagName)) {
@@ -299,7 +299,7 @@ export const getTimestampedArchivedTranscriptFilename = (): string => {
     return getTimestampedFilename('review-transcript', '.md');
 };
 
-// archiveAudio function moved to @eldrforge/audio-tools
+// archiveAudio function moved to @grunnverk/audio-tools
 
 /**
  * Query npm registry for published version of a package
@@ -308,7 +308,7 @@ export const getTimestampedArchivedTranscriptFilename = (): string => {
 export const getNpmPublishedVersion = async (packageName: string): Promise<string | null> => {
     const logger = getLogger();
     try {
-        const { runSecure } = await import('@eldrforge/git-tools');
+        const { runSecure } = await import('@grunnverk/git-tools');
 
         // Use npm view to get the latest published version
         // --json flag ensures parseable output
@@ -336,7 +336,7 @@ export const getNpmPublishedVersion = async (packageName: string): Promise<strin
 export const isVersionPublishedOnNpm = async (packageName: string, version: string): Promise<boolean> => {
     const logger = getLogger();
     try {
-        const { runSecure } = await import('@eldrforge/git-tools');
+        const { runSecure } = await import('@grunnverk/git-tools');
 
         // Use npm view to check for specific version
         const { stdout } = await runSecure('npm', ['view', `${packageName}@${version}`, 'version', '--json']);
@@ -360,7 +360,7 @@ export const isVersionPublishedOnNpm = async (packageName: string, version: stri
  */
 export const getTagInfo = async (tagName: string): Promise<{ exists: boolean; commit?: string; version?: string } | null> => {
     try {
-        const { runSecure, validateGitRef } = await import('@eldrforge/git-tools');
+        const { runSecure, validateGitRef } = await import('@grunnverk/git-tools');
 
         if (!validateGitRef(tagName)) {
             throw new Error(`Invalid tag name: ${tagName}`);

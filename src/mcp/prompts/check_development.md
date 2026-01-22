@@ -23,7 +23,7 @@ This is a quick verification step before starting development work to ensure you
 
 1. **Check Branch Status**
    - For each package in the tree, check the current git branch
-   - Use `git branch --show-current` or `getGitStatusSummary()` from `@eldrforge/git-tools` to get the current branch
+   - Use `git branch --show-current` or `getGitStatusSummary()` from `@grunnverk/git-tools` to get the current branch
    - **Fail if any package is on `main` or `master` branch** - these should be on `working` or a feature branch
    - Report which packages are on the wrong branch
 
@@ -37,15 +37,15 @@ This is a quick verification step before starting development work to ensure you
 3. **Check Dev Version Status**
    - For each package, read `package.json` and check the version field
    - Verify that versions contain a dev tag (e.g., `1.2.3-dev.0`, `0.5.1-dev.2`)
-   - Use `isDevelopmentVersion()` from `@eldrforge/core` if available, or check for patterns like `-dev.`, `-alpha`, `-beta`, `-rc`
+   - Use `isDevelopmentVersion()` from `@grunnverk/core` if available, or check for patterns like `-dev.`, `-alpha`, `-beta`, `-rc`
    - **Fail if any package has a non-dev version** (e.g., `1.2.3` without `-dev.0`) - this suggests the package needs `kodrdriv development` run
    - Report which packages have incorrect version formats
 
 4. **Check Link Status**
    - For each package, check if local dependencies are properly linked
-   - Use `getGloballyLinkedPackages()` and `getLinkedDependencies()` from `@eldrforge/git-tools` to check link status
+   - Use `getGloballyLinkedPackages()` and `getLinkedDependencies()` from `@grunnverk/git-tools` to check link status
    - Alternatively, check `node_modules` for symlinks pointing to local packages
-   - Check `package.json` dependencies - if they reference scoped packages (e.g., `@eldrforge/*`), verify they're linked, not using registry versions
+   - Check `package.json` dependencies - if they reference scoped packages (e.g., `@grunnverk/*`), verify they're linked, not using registry versions
    - **Fail if local dependencies are not linked** - run `kodrdriv_tree_link` to set up local links
    - Report which packages need linking
 
@@ -75,7 +75,7 @@ This is a quick verification step before starting development work to ensure you
 
 4. **Check Link Status**
    - Check if local dependencies are properly linked
-   - Use `getLinkedDependencies()` from `@eldrforge/git-tools` to check link status
+   - Use `getLinkedDependencies()` from `@grunnverk/git-tools` to check link status
    - Check `node_modules` for symlinks pointing to local packages
    - Check `package.json` dependencies - if they reference scoped packages, verify they're linked
    - **Fail if local dependencies are not linked** - run `kodrdriv link` to set up local links
@@ -156,14 +156,14 @@ Project is ready for development!
 Or if issues are found:
 
 ```
-❌ Branch Check: @eldrforge/core is on main branch
-⚠️  Remote Sync: @eldrforge/git-tools is 3 commits behind origin/working
-❌ Dev Versions: @eldrforge/core has version 1.2.3 (should be 1.2.3-dev.0)
-⚠️  Link Status: @eldrforge/commands-git is not linked locally
+❌ Branch Check: @grunnverk/core is on main branch
+⚠️  Remote Sync: @grunnverk/git-tools is 3 commits behind origin/working
+❌ Dev Versions: @grunnverk/core has version 1.2.3 (should be 1.2.3-dev.0)
+⚠️  Link Status: @grunnverk/commands-git is not linked locally
 
 Actions needed:
-1. Switch @eldrforge/core to working branch
-2. Run kodrdriv tree pull to sync @eldrforge/git-tools
-3. Run kodrdriv development in @eldrforge/core
+1. Switch @grunnverk/core to working branch
+2. Run kodrdriv tree pull to sync @grunnverk/git-tools
+3. Run kodrdriv development in @grunnverk/core
 4. Run kodrdriv tree link to link local dependencies
 ```

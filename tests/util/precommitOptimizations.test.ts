@@ -4,7 +4,7 @@ import * as fs from 'fs/promises';
 import path from 'path';
 
 vi.mock('fs/promises');
-vi.mock('@eldrforge/git-tools', () => ({
+vi.mock('@grunnverk/git-tools', () => ({
     runSecure: vi.fn(),
     run: vi.fn()
 }));
@@ -27,7 +27,7 @@ describe('precommitOptimizations', () => {
     beforeEach(async () => {
         vi.clearAllMocks();
         // Reset the imports
-        const gitTools = await import('@eldrforge/git-tools');
+        const gitTools = await import('@grunnverk/git-tools');
         runSecure = vi.mocked(gitTools.runSecure);
         run = vi.mocked(gitTools.run);
     });

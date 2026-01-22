@@ -16,7 +16,7 @@ Kodrdriv is designed for monorepos with:
 
 ```bash
 # Install kodrdriv in root
-npm install -g @eldrforge/kodrdriv
+npm install -g @grunnverk/kodrdriv
 
 # Configure for monorepo
 kodrdriv --init-config

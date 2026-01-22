@@ -2,7 +2,7 @@
  * Adapter for ai-service Logger using kodrdriv logging
  */
 
-import type { Logger } from '@eldrforge/ai-service';
+import type { Logger } from '@grunnverk/ai-service';
 import { getDryRunLogger } from '../logging';
 
 /**

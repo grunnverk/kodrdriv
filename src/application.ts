@@ -5,20 +5,20 @@ import { config as dotenvConfig } from 'dotenv';
 dotenvConfig({ override: false, debug: false });
 
 import * as Cardigantime from '@theunwalked/cardigantime';
-import { setLogger as setGitLogger } from '@eldrforge/git-tools';
-import { setLogger as setGitHubLogger, setPromptFunction } from '@eldrforge/github-tools';
-import { promptConfirmation } from '@eldrforge/shared';
-import { initializeTemplates } from '@eldrforge/ai-service';
+import { setLogger as setGitLogger } from '@grunnverk/git-tools';
+import { setLogger as setGitHubLogger, setPromptFunction } from '@grunnverk/github-tools';
+import { promptConfirmation } from '@grunnverk/shared';
+import { initializeTemplates } from '@grunnverk/ai-service';
 import { CommandConfig } from 'types';
 import * as Arguments from './arguments';
 
 // Import commands from extracted packages
-import * as CommandsGit from '@eldrforge/commands-git';
-import * as CommandsTree from '@eldrforge/commands-tree';
-import * as CommandsPublish from '@eldrforge/commands-publish';
-import * as CommandsAudio from '@eldrforge/commands-audio';
+import * as CommandsGit from '@grunnverk/commands-git';
+import * as CommandsTree from '@grunnverk/commands-tree';
+import * as CommandsPublish from '@grunnverk/commands-publish';
+import * as CommandsAudio from '@grunnverk/commands-audio';
 import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from './constants';
-import { UserCancellationError } from '@eldrforge/shared';
+import { UserCancellationError } from '@grunnverk/shared';
 import { getLogger, setLogLevel } from './logging';
 import { Config, SecureConfig, ConfigSchema } from './types';
 
@@ -210,7 +210,7 @@ export async function runApplication(): Promise<void> {
             printDebugCommandInfo(commandName, runConfig);
         }
 
-        // Git commands (from @eldrforge/commands-git)
+        // Git commands (from @grunnverk/commands-git)
         if (commandName === COMMAND_COMMIT) {
             summary = await CommandsGit.commit(runConfig);
         } else if (commandName === COMMAND_PRECOMMIT) {
@@ -223,7 +223,7 @@ export async function runApplication(): Promise<void> {
         } else if (commandName === COMMAND_REVIEW) {
             summary = await CommandsGit.review(runConfig);
         }
-        // Tree commands (from @eldrforge/commands-tree)
+        // Tree commands (from @grunnverk/commands-tree)
         else if (commandName === COMMAND_TREE) {
             // Handle tree directories mapping from command-specific arguments
             if (runConfig.audioReview?.directory && !runConfig.tree?.directories) {
@@ -245,7 +245,7 @@ export async function runApplication(): Promise<void> {
         } else if (commandName === COMMAND_VERSIONS) {
             summary = await CommandsTree.versions(runConfig);
         }
-        // Publish commands (from @eldrforge/commands-publish)
+        // Publish commands (from @grunnverk/commands-publish)
         else if (commandName === COMMAND_RELEASE) {
             const releaseSummary = await CommandsPublish.release(runConfig);
             summary = `${releaseSummary.title}\n\n${releaseSummary.body}`;
@@ -254,7 +254,7 @@ export async function runApplication(): Promise<void> {
         } else if (commandName === COMMAND_DEVELOPMENT) {
             summary = await CommandsPublish.development(runConfig);
         }
-        // Audio commands (from @eldrforge/commands-audio)
+        // Audio commands (from @grunnverk/commands-audio)
         else if (commandName === COMMAND_AUDIO_COMMIT) {
             summary = await CommandsAudio.audioCommit(runConfig);
         } else if (commandName === COMMAND_AUDIO_REVIEW) {

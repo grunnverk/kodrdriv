@@ -3,7 +3,7 @@
  * Kodrdriv-specific interactive utilities
  *
  * This module contains application-specific interactive workflows that build on
- * top of the generic interactive functions from @eldrforge/ai-service.
+ * top of the generic interactive functions from @grunnverk/ai-service.
  *
  * Re-exports from ai-service for convenience, plus kodrdriv-specific functions.
  */
@@ -24,7 +24,7 @@ export {
     type Choice,
     type InteractiveOptions,
     type EditorResult,
-} from '@eldrforge/ai-service';
+} from '@grunnverk/ai-service';
 
 // Kodrdriv-specific types and functions below
 

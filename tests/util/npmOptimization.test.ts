@@ -19,7 +19,7 @@ vi.mock('../../src/logging', () => ({
     getLogger: vi.fn(() => mockLogger)
 }));
 
-vi.mock('@eldrforge/git-tools', () => ({
+vi.mock('@grunnverk/git-tools', () => ({
     run: vi.fn(),
     runSecure: vi.fn(),
     runSecureWithInheritedStdio: vi.fn(),
@@ -39,7 +39,7 @@ vi.mock('../../src/util/performance', () => ({
     }
 }));
 
-vi.mock('@eldrforge/shared', () => ({
+vi.mock('@grunnverk/shared', () => ({
     createStorage: vi.fn()
 }));
 
@@ -172,7 +172,7 @@ describe('npmOptimizations', () => {
 
     describe('optimizedNpmInstall', () => {
         test('should run install when needed', async () => {
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -185,7 +185,7 @@ describe('npmOptimizations', () => {
         });
 
         test('should use verbose flag when verbose is true', async () => {
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -195,7 +195,7 @@ describe('npmOptimizations', () => {
         });
 
         test('should not use cache when useCache is false', async () => {
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -205,7 +205,7 @@ describe('npmOptimizations', () => {
         });
 
         test('should throw error when npm install fails', async () => {
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockRejectedValueOnce(new Error('npm install failed'));
 
@@ -216,14 +216,14 @@ describe('npmOptimizations', () => {
 
     describe('tryNpmCi', () => {
         test.skip('should return success=false when no package-lock.json exists', async () => {
-            const { createStorage } = await import('@eldrforge/shared');
+            const { createStorage } = await import('@grunnverk/shared');
             const mockCreate = vi.mocked(createStorage);
             const mockStorage = createMockStorage({
                 exists: vi.fn().mockResolvedValueOnce(false)
             });
             mockCreate.mockReturnValueOnce(mockStorage);
 
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
 
             const result = await tryNpmCi();
@@ -233,14 +233,14 @@ describe('npmOptimizations', () => {
         });
 
         test('should run npm ci successfully when package-lock.json exists', async () => {
-            const { createStorage } = await import('@eldrforge/shared');
+            const { createStorage } = await import('@grunnverk/shared');
             const mockCreate = vi.mocked(createStorage);
             const mockStorage = createMockStorage({
                 exists: vi.fn().mockResolvedValueOnce(true)
             });
             mockCreate.mockReturnValueOnce(mockStorage);
 
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -251,14 +251,14 @@ describe('npmOptimizations', () => {
         });
 
         test('should return success=false when npm ci fails', async () => {
-            const { createStorage } = await import('@eldrforge/shared');
+            const { createStorage } = await import('@grunnverk/shared');
             const mockCreate = vi.mocked(createStorage);
             const mockStorage = createMockStorage({
                 exists: vi.fn().mockResolvedValueOnce(true) // package-lock.json exists
             });
             mockCreate.mockReturnValueOnce(mockStorage);
 
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockRejectedValueOnce(new Error('npm ci failed'));
 
@@ -272,14 +272,14 @@ describe('npmOptimizations', () => {
 
     describe('smartNpmInstall', () => {
         test('should use npm ci when preferCi is true and ci succeeds', async () => {
-            const { createStorage } = await import('@eldrforge/shared');
+            const { createStorage } = await import('@grunnverk/shared');
             const mockCreate = vi.mocked(createStorage);
             const mockStorage = createMockStorage({
                 exists: vi.fn().mockResolvedValueOnce(true) // package-lock.json for ci
             });
             mockCreate.mockReturnValueOnce(mockStorage);
 
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockResolvedValueOnce({ stdout: '', stderr: '' }); // npm ci succeeds
 
@@ -294,14 +294,14 @@ describe('npmOptimizations', () => {
         });
 
         test.skip('should skip npm ci when preferCi is false', async () => {
-            const { createStorage } = await import('@eldrforge/shared');
+            const { createStorage } = await import('@grunnverk/shared');
             const mockCreate = vi.mocked(createStorage);
             const mockStorage = createMockStorage({
                 exists: vi.fn().mockResolvedValueOnce(false) // no package-lock.json for install check
             });
             mockCreate.mockReturnValueOnce(mockStorage);
 
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockResolvedValueOnce({ stdout: '', stderr: '' });
 
@@ -313,14 +313,14 @@ describe('npmOptimizations', () => {
         });
 
         test.skip('should respect verbose option', async () => {
-            const { createStorage } = await import('@eldrforge/shared');
+            const { createStorage } = await import('@grunnverk/shared');
             const mockCreate = vi.mocked(createStorage);
             const mockStorage = createMockStorage({
                 exists: vi.fn().mockResolvedValueOnce(false) // no package-lock.json for install check
             });
             mockCreate.mockReturnValueOnce(mockStorage);
 
-            const { run } = await import('@eldrforge/git-tools');
+            const { run } = await import('@grunnverk/git-tools');
             const mockRun = vi.mocked(run);
             mockRun.mockResolvedValueOnce({ stdout: '', stderr: '' });
 
