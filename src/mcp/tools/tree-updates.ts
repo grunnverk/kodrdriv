@@ -37,7 +37,7 @@ export const treeUpdatesTool: McpTool = {
             scopes: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Multiple npm scopes to update (e.g., ["@grunnverk", "@riotprompt"])',
+                description: 'Multiple npm scopes to update (e.g., @grunnverk, @riotprompt)',
             },
         },
     },
