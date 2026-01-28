@@ -83,7 +83,7 @@
     "@rollup/plugin-replace": "^6.0.2",
     "@swc/core": "^1.13.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^24.2.1",
+    "@types/node": "^25.0.10",
     "@types/shell-escape": "^0.2.3",
     "@types/winston": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^8.39.1",
