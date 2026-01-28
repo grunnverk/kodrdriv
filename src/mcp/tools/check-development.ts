@@ -8,6 +8,7 @@ import { formatErrorForMCP, getLogger as getCoreLogger, isDevelopmentVersion } f
 import { installLogCapture } from '../logCapture.js';
 import { scanForPackageJsonFiles } from '@grunnverk/tree-core';
 import { getGitStatusSummary, getLinkedDependencies, run } from '@grunnverk/git-tools';
+import { getOctokit } from '@grunnverk/github-tools';
 import { loadConfig } from '../../utils/config.js';
 import { readFile } from 'fs/promises';
 import * as path from 'path';
@@ -26,7 +27,7 @@ export const checkDevelopmentTool: McpTool = {
     name: 'kodrdriv_check_development',
     description:
         'Check development readiness for a package or tree. ' +
-        'Verifies branch status, remote sync, dev version, and link status.',
+        'Verifies branch status, remote sync, dev version, link status, and checks for open PRs from the working branch that could block publish operations.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -45,6 +46,7 @@ export const checkDevelopmentTool: McpTool = {
  * - Remote sync status
  * - Dev version status
  * - Link status for local dependencies
+ * - Open PRs from working branch (warns about potential conflicts)
  */
 export async function executeCheckDevelopment(args: any, _context: ToolExecutionContext): Promise<ToolResult> {
     const directory = args.directory || process.cwd();
@@ -84,6 +86,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             remoteSync: { passed: true, issues: [] as string[] },
             devVersion: { passed: true, issues: [] as string[] },
             linkStatus: { passed: true, issues: [] as string[] },
+            openPRs: { passed: true, issues: [] as string[], warnings: [] as string[] },
         };
 
         const packagesToCheck = isTree ? packageJsonFiles : [path.join(directory, 'package.json')];
@@ -181,13 +184,60 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     checks.linkStatus.issues.push(`${pkgName}: Could not check link status - ${error.message || error}`);
                 }
             }
+
+            // 5. Check for open PRs from working branch
+            if (pkgJson.repository?.url) {
+                try {
+                    const gitStatus = await getGitStatusSummary(pkgDir);
+                    const currentBranch = gitStatus.branch;
+
+                    // Extract owner/repo from repository URL
+                    const repoUrl = pkgJson.repository.url;
+                    const match = repoUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)/);
+                    
+                    if (match) {
+                        const [, owner, repo] = match;
+                        
+                        try {
+                            const octokit = getOctokit();
+                            const { data: openPRs } = await octokit.pulls.list({
+                                owner,
+                                repo,
+                                state: 'open',
+                                head: `${owner}:${currentBranch}`,
+                            });
+
+                            if (openPRs.length > 0) {
+                                checks.openPRs.passed = false;
+                                for (const pr of openPRs) {
+                                    const prInfo = `PR #${pr.number}: ${pr.title} (${pr.html_url})`;
+                                    checks.openPRs.issues.push(`${pkgName}: ${prInfo}`);
+                                }
+                            }
+                        } catch (prError: any) {
+                            // Only log if it's not a 404 (repo might not exist on GitHub)
+                            if (!prError.message?.includes('404') && !prError.status || prError.status !== 404) {
+                                checks.openPRs.warnings.push(
+                                    `${pkgName}: Could not check PRs - ${prError.message || prError}`
+                                );
+                            }
+                        }
+                    }
+                } catch (error: any) {
+                    // Don't fail the check if we can't check PRs
+                    checks.openPRs.warnings.push(
+                        `${pkgName}: Could not check for open PRs - ${error.message || error}`
+                    );
+                }
+            }
         }
 
         // Build summary
         const allPassed = checks.branch.passed &&
                          checks.remoteSync.passed &&
                          checks.devVersion.passed &&
-                         checks.linkStatus.passed;
+                         checks.linkStatus.passed &&
+                         checks.openPRs.passed;
 
         const summary = {
             ready: allPassed,
@@ -210,6 +260,11 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     passed: checks.linkStatus.passed,
                     issues: checks.linkStatus.issues,
                 },
+                openPRs: {
+                    passed: checks.openPRs.passed,
+                    issues: checks.openPRs.issues,
+                    warnings: checks.openPRs.warnings,
+                },
             },
         };
 
@@ -230,6 +285,14 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             if (!checks.linkStatus.passed) {
                 logger.warn(`Link status issues: ${checks.linkStatus.issues.join('; ')}`);
             }
+            if (!checks.openPRs.passed) {
+                logger.warn(`Open PR issues: ${checks.openPRs.issues.join('; ')}`);
+            }
+        }
+        
+        // Log warnings separately (non-blocking)
+        if (checks.openPRs.warnings.length > 0) {
+            logger.warn(`Open PR warnings: ${checks.openPRs.warnings.join('; ')}`);
         }
 
         return {
