@@ -17,7 +17,7 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 
 **Important**: Before running `kodrdriv_tree_publish`, verify that `kodrdriv_tree_precommit` works successfully.
 
-**CRITICAL: Use `parallel=true`** when running `kodrdriv_tree_precommit` - this dramatically speeds up execution for large monorepos (reduces time from 20-30 minutes to 5-10 minutes).
+**DEFAULT: Use `parallel=true`** when running `kodrdriv_tree_precommit` - this is the default and recommended setting. It dramatically speeds up execution for large monorepos (reduces time from 20-30 minutes to 5-10 minutes).
 
 **Exception**: If `tree_fix_and_commit` was just executed successfully, you can skip the precommit check and proceed directly to publish. The `tree_fix_and_commit` workflow already ensures all precommit checks pass.
 
@@ -33,6 +33,7 @@ Once you start a `kodrdriv_tree_publish` operation, you establish a context file
 
 1. **Run Tree Publish**
    - Execute `kodrdriv_tree_publish` with appropriate parameters
+   - **DEFAULT: `parallel=true`** - Use parallel mode by default to speed up execution significantly
    - If specific packages are provided (${packages}), use the `packages` parameter to target only those packages
    - The command will start generating output as it processes packages in dependency order
    - This creates a context file that tracks version updates across the entire tree
@@ -105,6 +106,7 @@ After a successful publish workflow, projects should end up in a "working" branc
 
 ## Important Notes
 
+- **Parallel Execution (DEFAULT)**: `parallel=true` is the default and recommended setting for both `kodrdriv_tree_precommit` and `kodrdriv_tree_publish` - it dramatically reduces execution time. Always use it unless you have a specific reason not to.
 - **Maintain Tree Publish Context**: Once you start `kodrdriv_tree_publish`, you establish a context file that coordinates version updates across projects. If tree publish fails, fix the issue and return to the top-level directory to run `kodrdriv_tree_publish` with `continue: true`. **NEVER switch to `kodrdriv_publish` in a subproject** - this breaks version coordination.
 - **Checkpoint Recovery**: The `continue` parameter only works during Pull Request validation waits. It does NOT work for Release Workflow errors.
 - **Don't Skip Precommit**: Unless `fix_and_commit` was just run, always verify precommit checks pass before publishing.
@@ -118,9 +120,10 @@ After a successful publish workflow, projects should end up in a "working" branc
    → Confirms this is a tree with multiple packages
 
 2. Run kodrdriv_tree_precommit({ parallel: true }) (unless fix_and_commit was just run)
-   → Use parallel=true to speed up execution significantly
+   → DEFAULT: parallel=true speeds up execution significantly (20-30 min → 5-10 min)
 
-3. Run kodrdriv_tree_publish
+3. Run kodrdriv_tree_publish({ parallel: true })
+   → DEFAULT: Use parallel mode for faster execution
    → Error: PR validation failed for @org/package-a
    → Link provided: https://github.com/org/repo/pull/123
 
@@ -128,8 +131,8 @@ After a successful publish workflow, projects should end up in a "working" branc
 
 5. Fix the test → Commit and push
 
-6. **Return to top-level directory** → Run kodrdriv_tree_publish({ continue: true })
-   → Resumes from checkpoint, continues processing with maintained context
+6. **Return to top-level directory** → Run kodrdriv_tree_publish({ continue: true, parallel: true })
+   → Resumes from checkpoint with parallel mode, continues processing with maintained context
 
 7. Monitor for additional errors or completion
 ```
