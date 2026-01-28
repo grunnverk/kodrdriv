@@ -12,7 +12,7 @@ import * as CommandsPublish from '@grunnverk/commands-publish';
 // Import error formatting functions from core package
 // These functions are exported from @grunnverk/core
 import { formatErrorForMCP, extractCommandErrorDetails, getLogger as getCoreLogger } from '@grunnverk/core';
-import { VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from '../constants.js';
+import { VERSION, PROGRAM_NAME } from '../constants.js';
 import { installLogCapture } from './logCapture.js';
 import { scanForPackageJsonFiles, buildDependencyGraph, topologicalSort } from '@grunnverk/tree-core';
 // Import setLogger to configure tree-execution logging to go through winston (not console)
@@ -122,11 +122,12 @@ export const tools: McpTool[] = [
     {
         name: 'kodrdriv_get_version',
         description:
-            'Get version information for kodrdriv including build metadata. ' +
-            'Returns version, git branch, commit hash, build hostname, and build timestamp.',
+            'Get the current version of kodrdriv including git information and system details. ' +
+            'Useful for diagnosing if you are using the latest version.',
         inputSchema: {
             type: 'object',
             properties: {},
+            required: [],
         },
     },
     {
@@ -568,10 +569,10 @@ async function executeGetVersion(_args: any, _context: ToolExecutionContext): Pr
             success: true,
             data: {
                 version: VERSION,
-                buildHostname: BUILD_HOSTNAME,
-                buildTimestamp: BUILD_TIMESTAMP,
+                programName: PROGRAM_NAME,
+                fullVersion: `${PROGRAM_NAME} ${VERSION}`,
             },
-            message: `kodrdriv ${VERSION}\nBuilt on: ${BUILD_HOSTNAME}\nBuild time: ${BUILD_TIMESTAMP}`,
+            message: `${PROGRAM_NAME} ${VERSION}`,
         };
     } catch (error: any) {
         return {
