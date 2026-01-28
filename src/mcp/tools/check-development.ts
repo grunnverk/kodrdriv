@@ -85,7 +85,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             branch: { passed: true, issues: [] as string[] },
             remoteSync: { passed: true, issues: [] as string[] },
             devVersion: { passed: true, issues: [] as string[] },
-            linkStatus: { passed: true, issues: [] as string[] },
+            linkStatus: { passed: true, issues: [] as string[], warnings: [] as string[] },
             openPRs: { passed: true, issues: [] as string[], warnings: [] as string[] },
         };
 
@@ -160,7 +160,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 }
             }
 
-            // 4. Check link status
+            // 4. Check link status (warning only - links are recommended but not required)
             if (pkgJson.dependencies || pkgJson.devDependencies) {
                 try {
                     const linkedDeps = await getLinkedDependencies(pkgDir);
@@ -175,13 +175,13 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     const unlinkedLocal = localDeps.filter(dep => !linkedDeps.has(dep));
 
                     if (unlinkedLocal.length > 0) {
-                        checks.linkStatus.passed = false;
-                        checks.linkStatus.issues.push(
-                            `${pkgName}: Local dependencies not linked: ${unlinkedLocal.join(', ')}`
+                        // Don't fail the check, just warn - links are recommended but not required
+                        checks.linkStatus.warnings.push(
+                            `${pkgName}: Local dependencies not linked (recommended): ${unlinkedLocal.join(', ')}`
                         );
                     }
                 } catch (error: any) {
-                    checks.linkStatus.issues.push(`${pkgName}: Could not check link status - ${error.message || error}`);
+                    checks.linkStatus.warnings.push(`${pkgName}: Could not check link status - ${error.message || error}`);
                 }
             }
 
@@ -232,11 +232,10 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             }
         }
 
-        // Build summary
+        // Build summary - linkStatus is not included in allPassed (it's a recommendation, not a requirement)
         const allPassed = checks.branch.passed &&
                          checks.remoteSync.passed &&
                          checks.devVersion.passed &&
-                         checks.linkStatus.passed &&
                          checks.openPRs.passed;
 
         const summary = {
@@ -259,6 +258,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 linkStatus: {
                     passed: checks.linkStatus.passed,
                     issues: checks.linkStatus.issues,
+                    warnings: checks.linkStatus.warnings,
                 },
                 openPRs: {
                     passed: checks.openPRs.passed,
@@ -270,9 +270,9 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
 
         // Log results
         if (allPassed) {
-            logger.info('✅ All development readiness checks passed');
+            logger.info('✅ All required development readiness checks passed');
         } else {
-            logger.warn('⚠️  Some development readiness checks failed');
+            logger.warn('⚠️  Some required development readiness checks failed');
             if (!checks.branch.passed) {
                 logger.warn(`Branch issues: ${checks.branch.issues.join('; ')}`);
             }
@@ -282,15 +282,15 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             if (!checks.devVersion.passed) {
                 logger.warn(`Dev version issues: ${checks.devVersion.issues.join('; ')}`);
             }
-            if (!checks.linkStatus.passed) {
-                logger.warn(`Link status issues: ${checks.linkStatus.issues.join('; ')}`);
-            }
             if (!checks.openPRs.passed) {
                 logger.warn(`Open PR issues: ${checks.openPRs.issues.join('; ')}`);
             }
         }
         
-        // Log warnings separately (non-blocking)
+        // Log recommendations/warnings separately (non-blocking)
+        if (checks.linkStatus.warnings.length > 0) {
+            logger.warn(`Link status recommendations: ${checks.linkStatus.warnings.join('; ')}`);
+        }
         if (checks.openPRs.warnings.length > 0) {
             logger.warn(`Open PR warnings: ${checks.openPRs.warnings.join('; ')}`);
         }
