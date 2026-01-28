@@ -52,6 +52,7 @@ export async function executeCommit(args: any, context: ToolExecutionContext): P
                 config.commit = {};
             }
             config.commit.sendit = args.sendit || false;
+            config.commit.add = true; // Always stage all changes in MCP commit workflow
             config.commit.interactive = !args.sendit;
             if (args.issue) {
                 config.commit.context = `GitHub Issue #${args.issue}`;
