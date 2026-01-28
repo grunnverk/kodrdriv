@@ -61,7 +61,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@octokit/rest": "^22.0.0",
     "@riotprompt/riotprompt": "^0.0.21",
-    "@theunwalked/cardigantime": "^0.0.22",
+    "@theunwalked/cardigantime": "^0.0.23",
     "@theunwalked/unplayable": "^0.0.28",
     "@types/semver": "^7.7.0",
     "commander": "^14.0.0",
