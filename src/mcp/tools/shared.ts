@@ -9,7 +9,17 @@ import { installLogCapture } from '../logCapture.js';
 import { scanForPackageJsonFiles, buildDependencyGraph, topologicalSort } from '@grunnverk/tree-core';
 // Import setLogger to configure tree-execution logging to go through winston (not console)
 import { setLogger as setTreeExecutionLogger } from '@grunnverk/tree-execution';
+import { loadConfig } from '../../utils/config.js';
 /* eslint-enable import/extensions */
+
+/**
+ * Default patterns for subprojects to exclude from scanning
+ */
+const DEFAULT_EXCLUDE_SUBPROJECTS = [
+    'doc/',
+    'docs/',
+    'test-*/',
+];
 
 /**
  * Configure tree-execution to use the winston logger instead of console.log
@@ -107,8 +117,22 @@ export async function discoverTreePackages(
     startFrom?: string
 ): Promise<{ total: number; buildOrder: string[]; message: string } | null> {
     try {
+        // Load config to get workspace exclusions
+        const config = await loadConfig(directory);
+        const excludeSubprojects = config?.workspace?.excludeSubprojects ?? DEFAULT_EXCLUDE_SUBPROJECTS;
+
+        // Build exclusion patterns (same as workspace resource)
+        const excludedPatterns = [
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/build/**',
+            '**/.git/**',
+            // Add subproject exclusions
+            ...excludeSubprojects.map((pattern: string) => `**/${pattern}**`),
+        ];
+
         // Send status update about discovering packages
-        const packageJsonPaths = await scanForPackageJsonFiles(directory);
+        const packageJsonPaths = await scanForPackageJsonFiles(directory, excludedPatterns);
 
         if (packageJsonPaths.length === 0) {
             return null;
