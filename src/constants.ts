@@ -2,9 +2,10 @@ import { MergeMethod } from './types';
 import os from 'os';
 import path from 'path';
 
+/** Version string populated at build time with git and system information */
 export const VERSION = '__VERSION__ (__GIT_BRANCH__/__GIT_COMMIT__ __GIT_TAGS__ __GIT_COMMIT_DATE__) __SYSTEM_INFO__';
-export const BUILD_HOSTNAME = '__BUILD_HOSTNAME__';
-export const BUILD_TIMESTAMP = '__BUILD_TIMESTAMP__';
+
+/** The program name used in CLI help and error messages */
 export const PROGRAM_NAME = 'kodrdriv';
 export const DEFAULT_CHARACTER_ENCODING = 'utf-8';
 export const DEFAULT_BINARY_TO_TEXT_ENCODING = 'base64';

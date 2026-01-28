@@ -2,7 +2,7 @@
 import { Command } from "commander";
 import path from "path";
 import { z } from "zod";
-import { ALLOWED_COMMANDS, DEFAULT_CHARACTER_ENCODING, DEFAULT_COMMAND, KODRDRIV_DEFAULTS, PROGRAM_NAME, VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from "./constants";
+import { ALLOWED_COMMANDS, DEFAULT_CHARACTER_ENCODING, DEFAULT_COMMAND, KODRDRIV_DEFAULTS, PROGRAM_NAME, VERSION } from "./constants";
 import { getLogger } from "./logging";
 const logger = getLogger();
 import { CommandConfig, Config, SecureConfig } from './types'; // Import the Config type from main.ts
@@ -494,13 +494,12 @@ export const configure = async (cardigantime: any): Promise<[Config, SecureConfi
     const logger = getLogger();
     let program = new Command();
 
-    // Configure program basics with custom version string
-    const versionString = `${VERSION}\nBuilt on: ${BUILD_HOSTNAME}\nBuild time: ${BUILD_TIMESTAMP}`;
+    // Configure program basics with version string
     program
         .name(PROGRAM_NAME)
         .summary('Create Intelligent Release Notes or Change Logs from Git')
         .description('Create Intelligent Release Notes or Change Logs from Git')
-        .version(versionString, '-V, --version', 'Display version information');
+        .version(VERSION, '-V, --version', 'Display version information');
 
     // Let cardigantime add its arguments first
     program = await cardigantime.configure(program);

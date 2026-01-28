@@ -17,7 +17,7 @@ import * as CommandsGit from '@grunnverk/commands-git';
 import * as CommandsTree from '@grunnverk/commands-tree';
 import * as CommandsPublish from '@grunnverk/commands-publish';
 import * as CommandsAudio from '@grunnverk/commands-audio';
-import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP } from './constants';
+import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION, PROGRAM_NAME } from './constants';
 import { UserCancellationError } from '@grunnverk/shared';
 import { getLogger, setLogLevel } from './logging';
 import { Config, SecureConfig, ConfigSchema } from './types';
@@ -44,14 +44,14 @@ function checkNodeVersion(): void {
 }
 
 /**
- * Get formatted version information including build metadata.
+ * Get formatted version information.
  */
-export function getVersionInfo(): { version: string; buildHostname: string; buildTimestamp: string; formatted: string } {
+export function getVersionInfo(): { version: string; programName: string; fullVersion: string; formatted: string } {
     return {
         version: VERSION,
-        buildHostname: BUILD_HOSTNAME,
-        buildTimestamp: BUILD_TIMESTAMP,
-        formatted: `${VERSION}\nBuilt on: ${BUILD_HOSTNAME}\nBuild time: ${BUILD_TIMESTAMP}`
+        programName: PROGRAM_NAME,
+        fullVersion: `${PROGRAM_NAME} ${VERSION}`,
+        formatted: `${PROGRAM_NAME} ${VERSION}`
     };
 }
 
@@ -163,9 +163,9 @@ export async function runApplication(): Promise<void> {
     setGitHubLogger(logger);
     setPromptFunction(promptConfirmation);
 
-    // Display version information including build metadata
-    logger.info('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | BuildHost: %s | BuildTime: %s | Status: starting',
-        VERSION, BUILD_HOSTNAME, BUILD_TIMESTAMP);
+    // Display version information
+    logger.info('APPLICATION_STARTING: KodrDriv application initializing | Version: %s | Status: starting',
+        VERSION);
 
     // Handle check-config command first
     if (commandConfig.commandName === COMMAND_CHECK_CONFIG) {
