@@ -694,8 +694,10 @@ export async function getCliConfig(
         audioReviewCommand?: Command;
         reviewCommand?: Command;
         cleanCommand?: Command;
+        pullCommand?: Command;
         precommitCommand?: Command;
         developmentCommand?: Command;
+        checkDevelopmentCommand?: Command;
         versionsCommand?: Command;
         updatesCommand?: Command;
         selectAudioCommand?: Command;
@@ -1081,6 +1083,12 @@ Examples:
         .description('Switch to working branch and set up development version');
     addSharedOptions(developmentCommand);
 
+    const checkDevelopmentCommand = program
+        .command('check-development')
+        .option('--directory <directory>', 'directory to check (defaults to current directory)')
+        .description('Check development readiness (branch status, remote sync, dev versions, link status, open PRs)');
+    addSharedOptions(checkDevelopmentCommand);
+
     const versionsCommand = program
         .command('versions <subcommand>')
         .option('--directories [directories...]', 'directories to scan for packages (defaults to current directory)')
@@ -1128,8 +1136,10 @@ Examples:
             audioReviewCommand,
             reviewCommand,
             cleanCommand,
+            pullCommand,
             precommitCommand,
             developmentCommand,
+            checkDevelopmentCommand,
             versionsCommand,
             updatesCommand,
             selectAudioCommand,
@@ -1309,6 +1319,9 @@ Examples:
         } else if (commandName === 'development' && chosen?.developmentCommand?.opts) {
             const developmentCmd = chosen.developmentCommand;
             commandOptions = developmentCmd.opts();
+        } else if (commandName === 'check-development' && chosen?.checkDevelopmentCommand?.opts) {
+            const checkDevelopmentCmd = chosen.checkDevelopmentCommand;
+            commandOptions = checkDevelopmentCmd.opts();
         } else if (commandName === 'versions' && chosen?.versionsCommand?.opts) {
             const versionsCmd = chosen.versionsCommand as any;
             commandOptions = versionsCmd.opts();
