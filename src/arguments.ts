@@ -92,6 +92,8 @@ export const InputSchema = z.object({
     autoResolve: z.boolean().optional(), // Auto-resolve common conflicts
     // Precommit command options
     fix: z.boolean().optional(), // Attempt to auto-fix linting issues
+    // Check-development command options
+    validateReleaseWorkflow: z.boolean().optional(), // Validate release workflow (build, test, publish dry-run)
 });
 
 export type Input = z.infer<typeof InputSchema>;
@@ -1086,7 +1088,8 @@ Examples:
     const checkDevelopmentCommand = program
         .command('check-development')
         .option('--directory <directory>', 'directory to check (defaults to current directory)')
-        .description('Check development readiness (branch status, remote sync, dev versions, link status, open PRs)');
+        .option('--validate-release-workflow', 'validate release workflow (build, test, publish dry-run) - may take longer')
+        .description('Check development readiness (branch status, remote sync, dev versions, link status, open PRs, merge conflicts)');
     addSharedOptions(checkDevelopmentCommand);
 
     const versionsCommand = program
