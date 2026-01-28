@@ -57,14 +57,20 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
         const config = await loadConfig(directory);
         const excludeSubprojects = config?.workspace?.excludeSubprojects ?? DEFAULT_EXCLUDE_SUBPROJECTS;
 
-        // Build exclusion patterns (same as workspace resource)
+        // Build exclusion patterns
+        // For patterns like 'docs/', 'test-*/', we want to match any path containing these directories
         const excludedPatterns = [
             '**/node_modules/**',
             '**/dist/**',
             '**/build/**',
             '**/.git/**',
             // Add subproject exclusions
-            ...excludeSubprojects.map((pattern: string) => `**/${pattern}**`),
+            ...excludeSubprojects.map((pattern: string) => {
+                // Remove trailing slash if present
+                const normalized = pattern.endsWith('/') ? pattern.slice(0, -1) : pattern;
+                // Create pattern that matches the directory anywhere in the path
+                return `**/${normalized}/**`;
+            }),
         ];
 
         // Determine if this is a tree or single package
