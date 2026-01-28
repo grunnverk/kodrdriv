@@ -57,14 +57,20 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
         const config = await loadConfig(directory);
         const excludeSubprojects = config?.workspace?.excludeSubprojects ?? DEFAULT_EXCLUDE_SUBPROJECTS;
 
-        // Build exclusion patterns (same as workspace resource)
+        // Build exclusion patterns
+        // For patterns like 'docs/', 'test-*/', we want to match any path containing these directories
         const excludedPatterns = [
             '**/node_modules/**',
             '**/dist/**',
             '**/build/**',
             '**/.git/**',
             // Add subproject exclusions
-            ...excludeSubprojects.map((pattern: string) => `**/${pattern}**`),
+            ...excludeSubprojects.map((pattern: string) => {
+                // Remove trailing slash if present
+                const normalized = pattern.endsWith('/') ? pattern.slice(0, -1) : pattern;
+                // Create pattern that matches the directory anywhere in the path
+                return `**/${normalized}/**`;
+            }),
         ];
 
         // Determine if this is a tree or single package
@@ -81,6 +87,20 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
         };
 
         const packagesToCheck = isTree ? packageJsonFiles : [path.join(directory, 'package.json')];
+
+        // Build a set of all local package names for link status checking
+        const localPackageNames = new Set<string>();
+        for (const pkgJsonPath of packagesToCheck) {
+            try {
+                const pkgJsonContent = await readFile(pkgJsonPath, 'utf-8');
+                const pkgJson = JSON.parse(pkgJsonContent);
+                if (pkgJson.name) {
+                    localPackageNames.add(pkgJson.name);
+                }
+            } catch {
+                // Skip packages we can't read
+            }
+        }
 
         for (const pkgJsonPath of packagesToCheck) {
             const pkgDir = path.dirname(pkgJsonPath);
@@ -146,14 +166,15 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                         ...pkgJson.devDependencies,
                     };
 
-                    // Check for scoped packages that should be linked
-                    const scopedPackages = Object.keys(allDeps).filter(dep => dep.startsWith('@'));
-                    const unlinkedScoped = scopedPackages.filter(dep => !linkedDeps.has(dep));
+                    // Only check link status for dependencies that are part of the local workspace
+                    // This filters out external scoped packages like @types/*, @typescript-eslint/*, etc.
+                    const localDeps = Object.keys(allDeps).filter(dep => localPackageNames.has(dep));
+                    const unlinkedLocal = localDeps.filter(dep => !linkedDeps.has(dep));
 
-                    if (unlinkedScoped.length > 0) {
+                    if (unlinkedLocal.length > 0) {
                         checks.linkStatus.passed = false;
                         checks.linkStatus.issues.push(
-                            `${pkgName}: Scoped dependencies not linked: ${unlinkedScoped.join(', ')}`
+                            `${pkgName}: Local dependencies not linked: ${unlinkedLocal.join(', ')}`
                         );
                     }
                 } catch (error: any) {
