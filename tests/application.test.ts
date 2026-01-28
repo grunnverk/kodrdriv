@@ -52,7 +52,8 @@ vi.mock('@grunnverk/commands-audio', () => ({
 vi.mock('@grunnverk/commands-publish', () => ({
     release: vi.fn(),
     publish: vi.fn(),
-    development: vi.fn()
+    development: vi.fn(),
+    checkDevelopment: vi.fn()
 }));
 
 vi.mock('@grunnverk/commands-tree', () => ({
@@ -82,6 +83,7 @@ vi.mock('../src/constants', () => ({
     COMMAND_UNLINK: 'unlink',
     COMMAND_PRECOMMIT: 'precommit',
     COMMAND_DEVELOPMENT: 'development',
+    COMMAND_CHECK_DEVELOPMENT: 'check-development',
     COMMAND_VERSIONS: 'versions',
     COMMAND_UPDATES: 'updates',
     DEFAULT_CONFIG_DIR: '.kodrdriv',

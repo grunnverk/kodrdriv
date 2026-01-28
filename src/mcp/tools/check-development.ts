@@ -158,20 +158,20 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                             `git merge --no-commit --no-ff origin/${targetBranch}`,
                             { cwd: pkgDir }
                         );
-                        
+
                         // If we get here, check if there are conflicts
                         const { stdout: statusAfterMerge } = await run('git status --porcelain', { cwd: pkgDir });
-                        
-                        if (statusAfterMerge.includes('UU ') || statusAfterMerge.includes('AA ') || 
-                            statusAfterMerge.includes('DD ') || statusAfterMerge.includes('AU ') || 
-                            statusAfterMerge.includes('UA ') || statusAfterMerge.includes('DU ') || 
+
+                        if (statusAfterMerge.includes('UU ') || statusAfterMerge.includes('AA ') ||
+                            statusAfterMerge.includes('DD ') || statusAfterMerge.includes('AU ') ||
+                            statusAfterMerge.includes('UA ') || statusAfterMerge.includes('DU ') ||
                             statusAfterMerge.includes('UD ')) {
                             checks.mergeConflicts.passed = false;
                             checks.mergeConflicts.issues.push(
                                 `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
                             );
                         }
-                        
+
                         // Abort the test merge (only if there's actually a merge in progress)
                         try {
                             await run('git merge --abort', { cwd: pkgDir });
@@ -185,7 +185,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                         } catch {
                             // Ignore abort errors
                         }
-                        
+
                         // If merge failed, there are likely conflicts
                         if (mergeError.message?.includes('CONFLICT') || mergeError.stderr?.includes('CONFLICT')) {
                             checks.mergeConflicts.passed = false;
@@ -263,10 +263,10 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     // Extract owner/repo from repository URL
                     const repoUrl = pkgJson.repository.url;
                     const match = repoUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)/);
-                    
+
                     if (match) {
                         const [, owner, repo] = match;
-                        
+
                         try {
                             const octokit = getOctokit();
                             const { data: openPRs } = await octokit.pulls.list({
@@ -364,7 +364,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 logger.warn(`Open PR issues: ${checks.openPRs.issues.join('; ')}`);
             }
         }
-        
+
         // Log recommendations/warnings separately (non-blocking)
         if (checks.linkStatus.warnings.length > 0) {
             logger.warn(`Link status recommendations: ${checks.linkStatus.warnings.join('; ')}`);
