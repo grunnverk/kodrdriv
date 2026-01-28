@@ -84,7 +84,7 @@ export interface McpPromptMessage {
 export interface KodrdrivUri {
     scheme: 'kodrdriv';
     type: 'config' | 'status' | 'workspace' | 'tree-graph' | 'package' |
-          'recent-commits' | 'issues' | 'release-notes';
+          'recent-commits' | 'issues' | 'release-notes' | 'version';
     path?: string;
     query?: Record<string, string>;
 }
@@ -274,4 +274,14 @@ export interface ReleaseNotesResource {
         hash: string;
         message: string;
     }>;
+}
+
+/**
+ * Version Resource
+ * Result of reading kodrdriv version information
+ */
+export interface VersionResource {
+    version: string;
+    programName: string;
+    fullVersion: string;
 }

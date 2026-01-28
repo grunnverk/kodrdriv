@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getResources, readResource } from '../../src/mcp/resources.js';
+import { getResources, readResource } from '../../src/mcp/resources/index.js';
 
 describe('MCP Resources', () => {
     describe('getResources', () => {

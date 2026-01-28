@@ -4,6 +4,14 @@
 
 Ensure that precommit checks pass successfully for a single package. When failures occur, understand the root cause, fix the issues, and iterate until all checks pass.
 
+## Prerequisites
+
+Before proceeding, fetch the workspace resource to confirm this is a single-package operation:
+
+**Workspace Resource**: `kodrdriv://workspace[/path/to/directory]`
+- Confirms this is a single-package operation (`packages.length === 1`)
+- Provides package information (name, version, path)
+
 ## Workflow Steps
 
 1. **Run Precommit Check**
@@ -34,20 +42,23 @@ Ensure that precommit checks pass successfully for a single package. When failur
 ## Example Flow
 
 ```
-1. kodrdriv_precommit({ directory: "/path/to/package", fix: true })
+1. Fetch kodrdriv://workspace/path/to/package
+   → Confirms this is a single package
+
+2. kodrdriv_precommit({ directory: "/path/to/package", fix: true })
    → Fails: TypeScript type error in src/index.ts:42
 
-2. Analyze error: TypeScript type error in src/index.ts:42
+3. Analyze error: TypeScript type error in src/index.ts:42
    → Fix the type error
 
-3. kodrdriv_precommit({ directory: "/path/to/package", fix: true })
+4. kodrdriv_precommit({ directory: "/path/to/package", fix: true })
    → Fails: Linting error in src/utils.ts:15
 
-4. Fix linting error
+5. Fix linting error
 
-5. kodrdriv_precommit({ directory: "/path/to/package", fix: true })
+6. kodrdriv_precommit({ directory: "/path/to/package", fix: true })
    → All checks pass
 
-6. kodrdriv_commit({ directory: "/path/to/package", sendit: true })
+7. kodrdriv_commit({ directory: "/path/to/package", sendit: true })
    → Commits all fixes
 ```

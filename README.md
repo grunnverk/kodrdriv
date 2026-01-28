@@ -68,6 +68,7 @@ Then simply ask: *"Use kodrdriv to commit my changes"*
 
 ### Documentation
 - **[Integration Guide](MCP_INTEGRATION.md)** - Complete MCP documentation
+- **[MCP Configuration Guide](guide/mcp-configuration.md)** - Configure Kodrdriv via MCP
 - **[Tools Reference](docs/mcp-tools-reference.md)** - All 14 tools
 - **[Resources Reference](docs/mcp-resources-reference.md)** - All 8 resources
 - **[Prompts Reference](docs/mcp-prompts-reference.md)** - All 6 workflows
