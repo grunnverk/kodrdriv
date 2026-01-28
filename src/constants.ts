@@ -238,6 +238,9 @@ export const KODRDRIV_DEFAULTS = {
         openaiReasoning: DEFAULT_OPENAI_REASONING as 'low' | 'medium' | 'high',
         openaiMaxOutputTokens: DEFAULT_OPENAI_MAX_OUTPUT_TOKENS,
     },
+    precommit: {
+        fix: false, // Auto-fix linting issues before running precommit checks
+    },
     publish: {
         mergeMethod: DEFAULT_MERGE_METHOD,
         from: DEFAULT_FROM_COMMIT_ALIAS,

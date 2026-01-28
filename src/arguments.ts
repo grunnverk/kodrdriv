@@ -359,7 +359,7 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
             finalCliArgs.stopAt !== undefined || finalCliArgs.cmd !== undefined ||
             builtInCommand !== undefined || finalCliArgs.continue !== undefined ||
             packageArgument !== undefined || finalCliArgs.cleanNodeModules !== undefined ||
-            finalCliArgs.externals !== undefined ||
+            finalCliArgs.externals !== undefined || finalCliArgs.fix !== undefined ||
             cliArgs.statusParallel !== undefined || cliArgs.auditBranches !== undefined ||
             cliArgs.parallel !== undefined || cliArgs.markCompleted !== undefined ||
             cliArgs.skip !== undefined || cliArgs.retryFailed !== undefined ||
@@ -379,6 +379,7 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
             if (packageArgument !== undefined) transformedCliArgs.tree.packageArgument = packageArgument;
             if (finalCliArgs.cleanNodeModules !== undefined) transformedCliArgs.tree.cleanNodeModules = finalCliArgs.cleanNodeModules;
             if (finalCliArgs.externals !== undefined) transformedCliArgs.tree.externals = finalCliArgs.externals;
+            if (finalCliArgs.fix !== undefined) transformedCliArgs.tree.fix = finalCliArgs.fix;
 
             // Parallel execution options
             if (cliArgs.parallel !== undefined) transformedCliArgs.tree.parallel = cliArgs.parallel;
@@ -603,6 +604,12 @@ export const configure = async (cardigantime: any): Promise<[Config, SecureConfi
         ...transformedCliArgs.review,
     };
 
+    const mergedPrecommit = {
+        ...KODRDRIV_DEFAULTS.precommit,
+        ...fileValues.precommit,
+        ...transformedCliArgs.precommit,
+    };
+
     const mergedTree = {
         ...KODRDRIV_DEFAULTS.tree,
         ...fileValues.tree,
@@ -639,6 +646,7 @@ export const configure = async (cardigantime: any): Promise<[Config, SecureConfi
         audioCommit: mergedAudioCommit,
         audioReview: mergedAudioReview,
         review: mergedReview,
+        precommit: mergedPrecommit,
         tree: mergedTree,
         branches: mergedBranches,
         versions: mergedVersions,
@@ -877,6 +885,9 @@ export async function getCliConfig(
 
         // Link/Unlink Options
         .option('--clean-node-modules', 'for unlink command: remove node_modules and package-lock.json, then reinstall dependencies')
+
+        // Precommit Options
+        .option('--fix', 'for precommit command: auto-fix linting issues before running precommit checks')
 
         // Command-specific options (forwarded to commit/release/publish)
         .option('--context-files [contextFiles...]', 'files containing additional context (forwarded to commit/release/publish)')
@@ -1408,6 +1419,10 @@ export async function validateAndProcessOptions(options: Partial<Config>): Promi
         review: {
             ...KODRDRIV_DEFAULTS.review,
             ...Object.fromEntries(Object.entries(options.review || {}).filter(([_, v]) => v !== undefined)),
+        },
+        precommit: {
+            ...KODRDRIV_DEFAULTS.precommit,
+            ...Object.fromEntries(Object.entries(options.precommit || {}).filter(([_, v]) => v !== undefined)),
         },
         publish: {
             ...KODRDRIV_DEFAULTS.publish,
