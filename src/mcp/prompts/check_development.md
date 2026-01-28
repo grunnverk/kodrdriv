@@ -2,168 +2,144 @@
 
 ## Objective
 
-Verify that projects are ready for development work. This prompt provides a comprehensive check to ensure:
-1. No projects are on the main branch
-2. All repositories have pulled the latest changes from remote
-3. Packages are on dev tag versions locally
-4. Local packages are linked via `kodrdriv link` or `kodrdriv tree link`
+Verify that projects are ready for development work before starting coding. This ensures you're working with:
+1. The correct branch (not `main` or `master`)
+2. The latest code from remote
+3. Proper development versions
+4. Linked local dependencies
 
-This is a quick verification step before starting development work to ensure you're working with the latest code and proper local dependencies.
+## Prerequisites
 
-## Determining Tree vs Single-Package Operation
+Before running checks, fetch these resources to understand the project:
 
-**Important**: Before proceeding, determine if this is a tree operation or a single-package operation:
+1. **Workspace Resource**: `kodrdriv://workspace[/path/to/directory]`
+   - Determines if this is a tree (monorepo) or single-package operation
+   - If `packages.length > 1`, this is a tree operation
+   - If `packages.length === 1`, this is a single-package operation
 
-- **Tree Operation**: If the directory (${directory}) contains subdirectories with `package.json` files, this is a monorepo/tree operation. Check all packages in the tree.
-- **Single-Package Operation**: If the directory is a leaf project (single package without subdirectories containing `package.json`), check only this single package.
+2. **Status Resource**: `kodrdriv://status[/path/to/directory]`
+   - Provides current git status including branch, staged/modified files, and sync status
+   - Use this to understand the current state before running checks
 
-## Workflow Steps
+## Usage
 
-### For Tree Operations (Monorepo)
+Use the `kodrdriv_check_development` tool to perform comprehensive checks. The tool automatically detects whether you're working with a single package or a monorepo tree based on the workspace structure.
 
-1. **Check Branch Status**
-   - For each package in the tree, check the current git branch
-   - Use `git branch --show-current` or `getGitStatusSummary()` from `@grunnverk/git-tools` to get the current branch
-   - **Fail if any package is on `main` or `master` branch** - these should be on `working` or a feature branch
-   - Report which packages are on the wrong branch
-
-2. **Check Remote Sync Status**
-   - For each package, check if the local branch is up to date with remote
-   - Use `git fetch` first to update remote refs
-   - Compare local branch with `origin/{branch}` using `git rev-parse` or `git status`
-   - **Fail if any package is behind remote** - run `kodrdriv_tree_pull` to sync
-   - Report which packages need to pull changes
-
-3. **Check Dev Version Status**
-   - For each package, read `package.json` and check the version field
-   - Verify that versions contain a dev tag (e.g., `1.2.3-dev.0`, `0.5.1-dev.2`)
-   - Use `isDevelopmentVersion()` from `@grunnverk/core` if available, or check for patterns like `-dev.`, `-alpha`, `-beta`, `-rc`
-   - **Fail if any package has a non-dev version** (e.g., `1.2.3` without `-dev.0`) - this suggests the package needs `kodrdriv development` run
-   - Report which packages have incorrect version formats
-
-4. **Check Link Status**
-   - For each package, check if local dependencies are properly linked
-   - Use `getGloballyLinkedPackages()` and `getLinkedDependencies()` from `@grunnverk/git-tools` to check link status
-   - Alternatively, check `node_modules` for symlinks pointing to local packages
-   - Check `package.json` dependencies - if they reference scoped packages (e.g., `@grunnverk/*`), verify they're linked, not using registry versions
-   - **Fail if local dependencies are not linked** - run `kodrdriv_tree_link` to set up local links
-   - Report which packages need linking
-
-5. **Summary Report**
-   - Provide a clear summary of all checks
-   - List any failures with specific packages and what needs to be fixed
-   - If all checks pass, confirm that the project is ready for development
-
-### For Single-Package Operations (Leaf Project)
-
-1. **Check Branch Status**
-   - Check the current git branch using `git branch --show-current` or `getGitStatusSummary()`
-   - **Fail if on `main` or `master` branch** - should be on `working` or a feature branch
-   - Report the current branch
-
-2. **Check Remote Sync Status**
-   - Run `git fetch` to update remote refs
-   - Compare local branch with `origin/{branch}` using `git rev-parse` or `git status`
-   - **Fail if behind remote** - run `kodrdriv_pull` to sync
-   - Report sync status
-
-3. **Check Dev Version Status**
-   - Read `package.json` and check the version field
-   - Verify that version contains a dev tag (e.g., `1.2.3-dev.0`)
-   - **Fail if version is not a dev version** - run `kodrdriv development` to update
-   - Report the current version
-
-4. **Check Link Status**
-   - Check if local dependencies are properly linked
-   - Use `getLinkedDependencies()` from `@grunnverk/git-tools` to check link status
-   - Check `node_modules` for symlinks pointing to local packages
-   - Check `package.json` dependencies - if they reference scoped packages, verify they're linked
-   - **Fail if local dependencies are not linked** - run `kodrdriv link` to set up local links
-   - Report link status
-
-5. **Summary Report**
-   - Provide a clear summary of all checks
-   - List any failures and what needs to be fixed
-   - If all checks pass, confirm that the project is ready for development
-
-## Common Issues and Fixes
-
-### Issue: Package on main branch
-**Fix**: Switch to working branch or create a feature branch
-```bash
-git checkout working
-# or
-git checkout -b feature/my-feature
+```
+kodrdriv_check_development --directory <path>
 ```
 
-### Issue: Behind remote
-**Fix**: Pull latest changes
-```bash
-# For tree operations
-kodrdriv tree pull
+## What Gets Checked
 
-# For single package
-kodrdriv pull
-```
+### 1. Branch Status
+- Verifies packages are not on `main` or `master` branches
+- Development should happen on `working` or feature branches
+- **Why**: Prevents accidental commits to protected branches
 
-### Issue: Not on dev version
-**Fix**: Run development command to bump to dev version
-```bash
-# For tree operations (if supported)
-kodrdriv development
+### 2. Remote Sync Status
+- Checks if local branches are up to date with remote
+- Detects if you're behind the remote branch
+- **Why**: Ensures you have the latest changes before starting work
 
-# For single package
-kodrdriv development
-```
+### 3. Development Version Status
+- Verifies packages have dev version tags (e.g., `1.2.3-dev.0`)
+- Checks if base versions conflict with published npm packages
+- **Why**: Distinguishes development versions from releases and prevents version conflicts
 
-### Issue: Local dependencies not linked
-**Fix**: Run link command
-```bash
-# For tree operations
-kodrdriv tree link
+### 4. Link Status
+- Checks if local scoped dependencies are properly linked
+- Verifies symlinks for cross-package development
+- **Why**: Ensures changes in one package are immediately reflected in dependent packages
 
-# For single package
-kodrdriv link
-```
+## Interpreting Results
 
-## Expected End State
+The tool returns a structured result with:
+- `ready`: Boolean indicating if all checks passed
+- `isTree`: Whether this is a monorepo or single package
+- `packagesChecked`: Number of packages examined
+- `checks`: Detailed results for each check category
 
-After all checks pass, you should have:
-- All packages on `working` or feature branches (not `main`)
-- All repositories synced with remote
-- All packages with dev versions (e.g., `1.2.3-dev.0`)
-- All local dependencies properly linked via `kodrdriv link`
+Each check category includes:
+- `passed`: Boolean indicating if the check passed
+- `issues`: Array of specific problems found
 
-## Important Notes
+## Fixing Issues
 
-- **Branch Check**: The main branch check is critical - you should never develop directly on `main`
-- **Remote Sync**: Always ensure you have the latest changes before starting work
-- **Dev Versions**: Working branches should always have dev versions to distinguish from release versions
-- **Link Status**: Local development requires linking to test changes across packages
-- **Efficiency**: For large monorepos, checks can be done in parallel where possible
+When issues are found, the tool output will indicate which checks failed. Here's how to address them:
+
+### Branch Issues
+If packages are on `main` or `master`:
+- Switch to `working` branch: `git checkout working`
+- Or create a feature branch: `git checkout -b feature/my-feature`
+
+### Remote Sync Issues
+If packages are behind remote:
+- Fetch `kodrdriv://workspace[/path]` to determine operation type
+- Single package: Use `kodrdriv_pull`
+- Tree: Use `kodrdriv_tree_pull`
+
+### Dev Version Issues
+If packages lack dev versions or have conflicts:
+- Run `kodrdriv_development` to transition to development mode
+- This tags the current version and bumps to the next dev version
+
+### Link Issues
+If local dependencies aren't linked:
+- Fetch `kodrdriv://workspace[/path]` to determine operation type
+- Single package: Use `kodrdriv_link` (not yet implemented as MCP tool)
+- Tree: Use `kodrdriv_tree_link`
+
+## When to Use This
+
+Run this check:
+- **Before starting new development work** - ensures clean starting state
+- **After switching branches** - verifies branch setup
+- **After pulling changes** - confirms everything is in sync
+- **When debugging dependency issues** - checks link status
 
 ## Example Output
 
+### All Checks Passed
+```json
+{
+  "ready": true,
+  "isTree": true,
+  "packagesChecked": 5,
+  "checks": {
+    "branch": { "passed": true, "issues": [] },
+    "remoteSync": { "passed": true, "issues": [] },
+    "devVersion": { "passed": true, "issues": [] },
+    "linkStatus": { "passed": true, "issues": [] }
+  }
+}
 ```
-✅ Branch Check: All packages on working branch
-✅ Remote Sync: All packages up to date with remote
-✅ Dev Versions: All packages have dev versions (e.g., 1.2.3-dev.0)
-✅ Link Status: All local dependencies properly linked
 
-Project is ready for development!
-```
-
-Or if issues are found:
-
-```
-❌ Branch Check: @grunnverk/core is on main branch
-⚠️  Remote Sync: @grunnverk/git-tools is 3 commits behind origin/working
-❌ Dev Versions: @grunnverk/core has version 1.2.3 (should be 1.2.3-dev.0)
-⚠️  Link Status: @grunnverk/commands-git is not linked locally
-
-Actions needed:
-1. Switch @grunnverk/core to working branch
-2. Run kodrdriv tree pull to sync @grunnverk/git-tools
-3. Run kodrdriv development in @grunnverk/core
-4. Run kodrdriv tree link to link local dependencies
+### Issues Found
+```json
+{
+  "ready": false,
+  "isTree": true,
+  "packagesChecked": 5,
+  "checks": {
+    "branch": {
+      "passed": false,
+      "issues": ["@grunnverk/core is on main branch"]
+    },
+    "remoteSync": {
+      "passed": false,
+      "issues": ["@grunnverk/git-tools is 3 commits behind remote"]
+    },
+    "devVersion": {
+      "passed": false,
+      "issues": [
+        "@grunnverk/core has non-dev version: 1.2.3",
+        "@grunnverk/audio-tools: Base version 1.0.4 already published (current: 1.0.4-dev.0)"
+      ]
+    },
+    "linkStatus": {
+      "passed": false,
+      "issues": ["@grunnverk/commands-git: Scoped dependencies not linked: @grunnverk/core"]
+    }
+  }
+}
 ```

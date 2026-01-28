@@ -17,7 +17,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { executeTool } from './tools.js';
-import { getResources, readResource } from './resources.js';
+import { getResources, readResource } from './resources/index.js';
 import { getPrompts, getPrompt } from './prompts/index.js';
 import { getLogger } from '../logging.js';
 import { getLogger as getCoreLogger, setLogLevel as setCoreLogLevel } from '@grunnverk/core';
@@ -332,6 +332,14 @@ async function main() {
             directory: z.string().optional(),
             rebase: z.boolean().optional(),
             auto_resolve: z.boolean().optional(),
+        }
+    );
+
+    registerTool(
+        'kodrdriv_check_development',
+        'Check development readiness for a package or tree. Verifies: 1) Not on main/master branch, 2) Up to date with remote, 3) Has dev version (e.g., 1.2.3-dev.0), 4) Local dependencies are linked. Returns structured results with specific issues found.',
+        {
+            directory: z.string().optional(),
         }
     );
 

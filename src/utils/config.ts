@@ -23,10 +23,15 @@ export interface NpmConfig {
     verifyPublished?: boolean;
 }
 
+export interface WorkspaceConfig {
+    excludeSubprojects?: string[];
+}
+
 export interface KodrdrivConfig {
     parallel?: ParallelPublishConfig;
     recovery?: RecoveryConfig;
     npm?: NpmConfig;
+    workspace?: WorkspaceConfig;
 }
 
 const CONFIG_FILES = ['.kodrdrivrc.json', '.kodrdrivrc', 'kodrdriv.config.json'];

@@ -28,6 +28,7 @@ See [`MCP_INTEGRATION.md`](../MCP_INTEGRATION.md) for details.
 - [**Architecture**](./architecture.md): System design, packages, and data flow
 - [**Commands**](./commands.md): Complete command reference with examples
 - [**Configuration**](./configuration.md): All configuration options and patterns
+- [**MCP Configuration**](./mcp-configuration.md): Configure Kodrdriv via Model Context Protocol
 
 ### Development & Debugging
 - [**Development**](./development.md): Building, testing, and extending kodrdriv

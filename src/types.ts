@@ -230,6 +230,9 @@ export const ConfigSchema = z.object({
         autoResolve: z.boolean().optional(), // Auto-resolve common conflicts
     }).optional(),
     excludedPatterns: z.array(z.string()).optional(),
+    workspace: z.object({
+        excludeSubprojects: z.array(z.string()).optional(), // Patterns for subprojects to exclude from workspace scanning (e.g., 'docs/', 'test-*/')
+    }).optional(),
     traits: z.any().optional(), // Add traits property for cardigantime compatibility
     stopContext: z.object({
         enabled: z.boolean().optional(),
@@ -512,4 +515,8 @@ export type StopContextConfig = {
     caseSensitive?: boolean;
     replacement?: string;
     warnOnFilter?: boolean;
+}
+
+export type WorkspaceConfig = {
+    excludeSubprojects?: string[]; // Patterns for subprojects to exclude from workspace scanning
 }

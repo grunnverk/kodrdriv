@@ -5,58 +5,71 @@ Update dependencies to the latest published versions from npmjs for configured s
 - Projects should NEVER depend on dev versions - they should use `kodrdriv link` for local development
 - Only update to stable, published versions available on npmjs
 
-## Determining Tree vs Single-Package Operation
+## Prerequisites
 
-**Important**: Before proceeding, determine if this is a tree operation or a single-package operation:
+Before proceeding, fetch these resources to understand the project structure and configuration:
 
-- **Tree Operation**: If the current directory contains subdirectories with `package.json` files, this is a monorepo/tree operation. Use `kodrdriv_tree_updates` command.
-- **Single-Package Operation**: If the directory is a leaf project (single package without subdirectories containing `package.json`), this is NOT a tree operation. Use `kodrdriv_updates` command instead.
+1. **Workspace Resource**: `kodrdriv://workspace[/path/to/directory]`
+   - Determines if this is a tree (monorepo) or single-package operation
+   - If `packages.length > 1`, use tree commands
+   - If `packages.length === 1`, use single-package commands
 
-**Workflow:**
+2. **Config Resource**: `kodrdriv://config[/path/to/directory]`
+   - Provides `updates.scopes` or `publish.scopedDependencyUpdates` configuration
+   - Determines which scopes to update
 
-### For Tree Operations (Monorepo)
+## Workflow
 
-1. Determine which scopes to update:
-   - Check configuration for `updates.scopes` or `publish.scopedDependencyUpdates`
-   - If the current package has a scope (e.g., `@grunnverk/my-package`), include that scope
-   - Use all configured scopes plus the package's own scope
+### Step 1: Determine Operation Type and Scopes
 
-2. Run `kodrdriv_tree_updates`:
-   - This uses npm-check-updates to find latest versions matching the scope pattern across all packages in the tree
-   - Updates only packages published on npmjs (not dev versions)
-   - Updates dependencies, devDependencies, and peerDependencies sections
+Fetch the workspace and config resources:
+- `kodrdriv://workspace[/path/to/directory]` → Check `packages.length`
+- `kodrdriv://config[/path/to/directory]` → Check `config.updates.scopes` or `config.publish.scopedDependencyUpdates`
 
-3. After updates:
-   - Run `npm install` in each updated package to update package-lock.json
-   - Review changes to ensure no dev versions were introduced
-   - Run `kodrdriv_tree_precommit` to verify everything still works across the tree
-     - **Note**: If precommit fails due to coverage threshold issues and the project uses lcov format, consider using the `brennpunkt` MCP server tools to analyze coverage gaps and prioritize test improvements. Install brennpunkt as an MCP server with: `npx -y -p @redaksjon/brennpunkt brennpunkt-mcp`
-   - Commit the changes with `kodrdriv_tree_commit`
+If the current package has a scope (e.g., `@grunnverk/my-package`), include that scope along with configured scopes.
 
-### For Single-Package Operations (Leaf Project)
+### Step 2: Run Updates
 
-1. Determine which scopes to update:
-   - Check configuration for `updates.scopes` or `publish.scopedDependencyUpdates`
-   - If the current package has a scope (e.g., `@grunnverk/my-package`), include that scope
-   - Use all configured scopes plus the package's own scope
+**For Tree Operations** (packages.length > 1):
+- Run `kodrdriv_tree_updates`:
+  - Pass the scopes from config: `{"directory": "/path/to/monorepo", "scopes": [<scopes from config>]}`
+  - Or single scope: `{"directory": "/path/to/monorepo", "scope": "<scope from config>"}`
+  - Updates all packages in the tree using npm-check-updates
+  - Updates only packages published on npmjs (not dev versions)
 
-2. Run `kodrdriv_updates`:
-   - This uses npm-check-updates to find latest versions matching the scope pattern for the single package
-   - Updates only packages published on npmjs (not dev versions)
-   - Updates dependencies, devDependencies, and peerDependencies sections
+**For Single-Package Operations** (packages.length === 1):
+- Run `kodrdriv_updates`:
+  - Pass the scopes from config: `{"directory": "/path/to/package", "scopes": [<scopes from config>]}`
+  - Or single scope: `{"directory": "/path/to/package", "scope": "<scope from config>"}`
+  - Updates the single package using npm-check-updates
+  - Updates only packages published on npmjs (not dev versions)
 
-3. After updates:
-   - Run `npm install` to update package-lock.json
-   - Review changes to ensure no dev versions were introduced
-   - Run `kodrdriv_precommit` to verify everything still works
-     - **Note**: If precommit fails due to coverage threshold issues and the project uses lcov format, consider using the `brennpunkt` MCP server tools to analyze coverage gaps and prioritize test improvements. Install brennpunkt as an MCP server with: `npx -y -p @redaksjon/brennpunkt brennpunkt-mcp`
-   - Commit the changes with `kodrdriv_commit`
+### Step 3: Post-Update Actions
 
-**Example:**
-If package is `@grunnverk/my-package` and config has `scopedDependencyUpdates: ["@riotprompt"]`, update:
-- `@grunnverk/*` dependencies (package's own scope)
-- `@riotprompt/*` dependencies (configured scope)
+**For Tree Operations:**
+1. Run `npm install` in each updated package to update package-lock.json
+2. Review changes to ensure no dev versions were introduced
+3. Run `kodrdriv_tree_precommit` to verify everything still works across the tree
+   - **Note**: If precommit fails due to coverage threshold issues and the project uses lcov format, consider using the `brennpunkt` MCP server tools to analyze coverage gaps and prioritize test improvements. Install brennpunkt as an MCP server with: `npx -y -p @redaksjon/brennpunkt brennpunkt-mcp`
+4. Commit the changes with `kodrdriv_tree_commit`
 
-**Verification:**
+**For Single-Package Operations:**
+1. Run `npm install` to update package-lock.json
+2. Review changes to ensure no dev versions were introduced
+3. Run `kodrdriv_precommit` to verify everything still works
+   - **Note**: If precommit fails due to coverage threshold issues and the project uses lcov format, consider using the `brennpunkt` MCP server tools to analyze coverage gaps and prioritize test improvements. Install brennpunkt as an MCP server with: `npx -y -p @redaksjon/brennpunkt brennpunkt-mcp`
+4. Commit the changes with `kodrdriv_commit`
+
+## Example
+
+If package is `@myorg/my-package` and config has `scopedDependencyUpdates: ["@external-scope"]`:
+
+1. Fetch `kodrdriv://workspace/path/to/package` → `{ packages: [{ name: "@myorg/my-package", ... }] }`
+2. Fetch `kodrdriv://config/path/to/package` → `{ config: { publish: { scopedDependencyUpdates: ["@external-scope"] } } }`
+3. Update scopes: `["@myorg", "@external-scope"]` (package's own scope + configured scopes)
+4. Since `packages.length === 1`, run `kodrdriv_updates` with these scopes
+
+## Verification
+
 - Check that no dependencies were updated to versions containing `-dev`, `-alpha`, `-beta`, or `-rc`
 - If any dev versions are found, they should be removed and replaced with `kodrdriv link` workflow instead

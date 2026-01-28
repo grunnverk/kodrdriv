@@ -4,6 +4,14 @@
 
 Execute a complete publishing workflow for a single package. Handle errors gracefully, fix issues as they arise, and resume appropriately.
 
+## Prerequisites
+
+Before proceeding, fetch the workspace resource to confirm this is a single-package operation:
+
+**Workspace Resource**: `kodrdriv://workspace[/path/to/directory]`
+- Confirms this is a single-package operation (`packages.length === 1`)
+- Provides package information (name, version, path)
+
 ## Pre-Publish Verification
 
 Before running `kodrdriv_publish`, verify that `kodrdriv_precommit` works successfully.
@@ -88,13 +96,21 @@ After a successful publish workflow, the project should end up in a "working" br
 ## Example Flow
 
 ```
-1. Run kodrdriv_precommit (unless fix_and_commit was just run)
-2. Run kodrdriv_publish
+1. Fetch kodrdriv://workspace/path/to/package
+   → Confirms this is a single package
+
+2. Run kodrdriv_precommit (unless fix_and_commit was just run)
+
+3. Run kodrdriv_publish
    → Error: PR validation failed
    → Link provided: https://github.com/org/repo/pull/456
-3. Investigate PR #456 → Find linting error
-4. Fix the linting error → Commit and push
-5. Run kodrdriv_publish again
+
+4. Investigate PR #456 → Find linting error
+
+5. Fix the linting error → Commit and push
+
+6. Run kodrdriv_publish again
    → System detects existing PR and resumes appropriately
-6. Monitor for completion
+
+7. Monitor for completion
 ```

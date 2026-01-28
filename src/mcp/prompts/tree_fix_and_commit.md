@@ -4,10 +4,16 @@
 
 Ensure that precommit checks pass successfully across the entire monorepo tree. When failures occur, understand the root cause, fix the issues, and resume from the point of failure rather than restarting from the beginning.
 
-## Critical: Monorepo Root Directory
+## Prerequisites
+
+Before proceeding, fetch the workspace resource to understand the monorepo structure:
+
+**Workspace Resource**: `kodrdriv://workspace[/path/to/directory]`
+- Confirms this is a tree operation (`packages.length > 1`)
+- Provides the list of all packages in the monorepo
+- Shows the root directory of the monorepo
 
 **IMPORTANT**: The monorepo root directory is `/Users/tobrien/gitw/grunnverk`, NOT `/Users/tobrien/gitw/grunnverk/kodrdriv`.
-
 - `kodrdriv` is a subdirectory within the `grunnverk` monorepo
 - All tree commands MUST be run from the grunnverk root: `/Users/tobrien/gitw/grunnverk`
 - Never run tree commands from within the kodrdriv subdirectory
@@ -66,7 +72,10 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
 ## Example Flow
 
 ```
-1. kodrdriv_tree_precommit({
+1. Fetch kodrdriv://workspace/Users/tobrien/gitw/grunnverk
+   → Confirms this is a tree with multiple packages
+
+2. kodrdriv_tree_precommit({
      directory: "/Users/tobrien/gitw/grunnverk",
      fix: true,
      parallel: true  // CRITICAL: Speeds up execution significantly
@@ -74,10 +83,10 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
    → Fails at package "@grunnverk/commands-git"
    → Error: "Command failed in package @grunnverk/commands-git"
 
-2. Analyze error: TypeScript type error in src/git.ts:42
+3. Analyze error: TypeScript type error in src/git.ts:42
    → Fix the type error in the commands-git package
 
-3. kodrdriv_tree_precommit({
+4. kodrdriv_tree_precommit({
      directory: "/Users/tobrien/gitw/grunnverk",
      fix: true,
      parallel: true,  // ALWAYS include parallel=true
@@ -85,9 +94,9 @@ Ensure that precommit checks pass successfully across the entire monorepo tree. 
    })
    → Continues from commands-git, may fail at next package
 
-4. Repeat until all pass (always using MCP tools with parallel=true, never manual commands)
+5. Repeat until all pass (always using MCP tools with parallel=true, never manual commands)
 
-5. kodrdriv_tree_commit({
+6. kodrdriv_tree_commit({
      directory: "/Users/tobrien/gitw/grunnverk",
      sendit: true
    })

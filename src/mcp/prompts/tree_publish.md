@@ -4,6 +4,15 @@
 
 Execute a complete publishing workflow for a monorepo tree. Handle errors gracefully, fix issues as they arise, and resume from checkpoints when appropriate.
 
+## Prerequisites
+
+Before proceeding, fetch the workspace resource to understand the monorepo structure:
+
+**Workspace Resource**: `kodrdriv://workspace[/path/to/directory]`
+- Confirms this is a tree operation (`packages.length > 1`)
+- Provides the list of all packages in the monorepo
+- Shows the root directory and dependency relationships
+
 ## Pre-Publish Verification
 
 **Important**: Before running `kodrdriv_tree_publish`, verify that `kodrdriv_tree_precommit` works successfully.
@@ -105,14 +114,22 @@ After a successful publish workflow, projects should end up in a "working" branc
 ## Example Flow
 
 ```
-1. Run kodrdriv_tree_precommit({ parallel: true }) (unless fix_and_commit was just run)
+1. Fetch kodrdriv://workspace/path/to/monorepo
+   → Confirms this is a tree with multiple packages
+
+2. Run kodrdriv_tree_precommit({ parallel: true }) (unless fix_and_commit was just run)
    → Use parallel=true to speed up execution significantly
-2. Run kodrdriv_tree_publish
+
+3. Run kodrdriv_tree_publish
    → Error: PR validation failed for @org/package-a
    → Link provided: https://github.com/org/repo/pull/123
-3. Investigate PR #123 → Find failing test
-4. Fix the test → Commit and push
-5. **Return to top-level directory** → Run kodrdriv_tree_publish({ continue: true })
+
+4. Investigate PR #123 → Find failing test
+
+5. Fix the test → Commit and push
+
+6. **Return to top-level directory** → Run kodrdriv_tree_publish({ continue: true })
    → Resumes from checkpoint, continues processing with maintained context
-6. Monitor for additional errors or completion
+
+7. Monitor for additional errors or completion
 ```
