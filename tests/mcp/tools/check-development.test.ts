@@ -21,7 +21,8 @@ vi.mock('../../../src/utils/config', () => ({
 
 describe('check-development tool', () => {
     const mockContext: ToolExecutionContext = {
-        cwd: '/test/workspace',
+        workingDirectory: '/test/workspace',
+        logger: console,
     };
 
     beforeEach(() => {
@@ -87,12 +88,13 @@ describe('check-development tool', () => {
             // Mock git status - all on working branch
             vi.mocked(gitTools.getGitStatusSummary).mockResolvedValue({
                 branch: 'working',
-                ahead: 0,
-                behind: 0,
-                staged: 0,
-                modified: 0,
-                untracked: 0,
-                conflicts: 0,
+                hasUnstagedFiles: false,
+                hasUncommittedChanges: false,
+                hasUnpushedCommits: false,
+                unstagedCount: 0,
+                uncommittedCount: 0,
+                unpushedCount: 0,
+                status: 'clean',
             });
 
             // Mock git run commands
@@ -179,12 +181,13 @@ describe('check-development tool', () => {
 
             vi.mocked(gitTools.getGitStatusSummary).mockResolvedValue({
                 branch: 'working',
-                ahead: 0,
-                behind: 0,
-                staged: 0,
-                modified: 0,
-                untracked: 0,
-                conflicts: 0,
+                hasUnstagedFiles: false,
+                hasUncommittedChanges: false,
+                hasUnpushedCommits: false,
+                unstagedCount: 0,
+                uncommittedCount: 0,
+                unpushedCount: 0,
+                status: 'clean',
             });
 
             vi.mocked(gitTools.run).mockImplementation(async (cmd: string) => {
@@ -241,12 +244,13 @@ describe('check-development tool', () => {
 
             vi.mocked(gitTools.getGitStatusSummary).mockResolvedValue({
                 branch: 'working',
-                ahead: 0,
-                behind: 0,
-                staged: 0,
-                modified: 0,
-                untracked: 0,
-                conflicts: 0,
+                hasUnstagedFiles: false,
+                hasUncommittedChanges: false,
+                hasUnpushedCommits: false,
+                unstagedCount: 0,
+                uncommittedCount: 0,
+                unpushedCount: 0,
+                status: 'clean',
             });
 
             vi.mocked(gitTools.run).mockImplementation(async (cmd: string) => {
