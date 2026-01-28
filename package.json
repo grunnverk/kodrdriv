@@ -67,7 +67,7 @@
     "commander": "^14.0.0",
     "dayjs": "^1.11.13",
     "dotenv": "^17.2.1",
-    "glob": "^11.0.3",
+    "glob": "^13.0.0",
     "js-yaml": "^4.1.0",
     "moment-timezone": "^0.6.0",
     "openai": "^6.3.0",
