@@ -8,9 +8,19 @@ import { formatErrorForMCP, getLogger as getCoreLogger, isDevelopmentVersion } f
 import { installLogCapture } from '../logCapture.js';
 import { scanForPackageJsonFiles } from '@grunnverk/tree-core';
 import { getGitStatusSummary, getLinkedDependencies, run } from '@grunnverk/git-tools';
+import { loadConfig } from '../../utils/config.js';
 import { readFile } from 'fs/promises';
 import * as path from 'path';
 /* eslint-enable import/extensions */
+
+/**
+ * Default patterns for subprojects to exclude from scanning
+ */
+const DEFAULT_EXCLUDE_SUBPROJECTS = [
+    'doc/',
+    'docs/',
+    'test-*/',
+];
 
 export const checkDevelopmentTool: McpTool = {
     name: 'kodrdriv_check_development',
@@ -43,8 +53,22 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
     try {
         const logger = getCoreLogger();
 
+        // Load config to get workspace exclusions
+        const config = await loadConfig(directory);
+        const excludeSubprojects = config?.workspace?.excludeSubprojects ?? DEFAULT_EXCLUDE_SUBPROJECTS;
+
+        // Build exclusion patterns (same as workspace resource)
+        const excludedPatterns = [
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/build/**',
+            '**/.git/**',
+            // Add subproject exclusions
+            ...excludeSubprojects.map((pattern: string) => `**/${pattern}**`),
+        ];
+
         // Determine if this is a tree or single package
-        const packageJsonFiles = await scanForPackageJsonFiles(directory);
+        const packageJsonFiles = await scanForPackageJsonFiles(directory, excludedPatterns);
         const isTree = packageJsonFiles.length > 1;
 
         logger.info(`Checking development readiness for ${isTree ? 'tree' : 'single package'} in ${directory}`);
