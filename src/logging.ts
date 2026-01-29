@@ -208,3 +208,21 @@ export const getDryRunLogger = (isDryRun: boolean) => {
         silly: (message: string, ...args: any[]) => logger.silly(message, { dryRun: true }, ...args),
     };
 };
+
+/**
+ * Close all logger transports and wait for them to finish writing.
+ * This should be called before process exit to ensure all logs are flushed
+ * and file handles are properly closed.
+ */
+export const closeLogger = async (): Promise<void> => {
+    return new Promise((resolve) => {
+        // Close all transports
+        logger.close();
+
+        // Give transports a moment to finish closing
+        // Winston's close() is synchronous but file handles may need a tick to release
+        setImmediate(() => {
+            resolve();
+        });
+    });
+};
