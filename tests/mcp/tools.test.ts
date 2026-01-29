@@ -41,8 +41,8 @@ describe('MCP Tools', () => {
     });
 
     describe('tools array', () => {
-        it('should have 19 tools defined', () => {
-            expect(tools).toHaveLength(19);
+        it('should have 18 tools defined', () => {
+            expect(tools).toHaveLength(18);
         });
 
         it('should have all core tools', () => {
@@ -59,7 +59,7 @@ describe('MCP Tools', () => {
 
         it('should have all tree tools', () => {
             const treeTools = ['kodrdriv_tree_commit', 'kodrdriv_tree_publish',
-                'kodrdriv_tree_precommit', 'kodrdriv_tree_link', 'kodrdriv_tree_unlink',
+                'kodrdriv_tree_link', 'kodrdriv_tree_unlink',
                 'kodrdriv_tree_updates', 'kodrdriv_tree_pull'];
 
             treeTools.forEach(toolName => {
@@ -473,36 +473,6 @@ describe('MCP Tools', () => {
             });
         });
 
-        describe('kodrdriv_tree_precommit', () => {
-            it('should execute tree precommit with success', async () => {
-                vi.mocked(CommandsTree.tree).mockResolvedValue('Tree precommit completed');
-
-                const result = await executeTool('kodrdriv_tree_precommit', {}, context);
-
-                expect(result.success).toBe(true);
-                expect(result.data?.result).toBe('Tree precommit completed');
-                expect(CommandsTree.tree).toHaveBeenCalled();
-            });
-
-            it('should not include packages in result when undefined', async () => {
-                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
-
-                const result = await executeTool('kodrdriv_tree_precommit', {}, context);
-
-                expect(result.success).toBe(true);
-                expect(result.data).toBeDefined();
-                expect(result.data?.packages).toBeUndefined();
-            });
-
-            it('should include packages in result when provided', async () => {
-                vi.mocked(CommandsTree.tree).mockResolvedValue('Completed');
-
-                const result = await executeTool('kodrdriv_tree_precommit', { packages: ['pkg-a'] }, context);
-
-                expect(result.success).toBe(true);
-                expect(result.data?.packages).toEqual(['pkg-a']);
-            });
-        });
 
         describe('kodrdriv_tree_link', () => {
             it('should execute tree link with success', async () => {
