@@ -84,6 +84,7 @@ export const COMMAND_CLEAN = 'clean';
 export const COMMAND_PULL = 'pull';
 export const COMMAND_PRECOMMIT = 'precommit';
 export const COMMAND_DEVELOPMENT = 'development';
+export const COMMAND_CHECK_DEVELOPMENT = 'check-development';
 export const COMMAND_VERSIONS = 'versions';
 export const COMMAND_UPDATES = 'updates';
 export const COMMAND_CHECK_CONFIG = 'check-config';
@@ -104,6 +105,7 @@ export const ALLOWED_COMMANDS = [
     COMMAND_PULL,
     COMMAND_PRECOMMIT,
     COMMAND_DEVELOPMENT,
+    COMMAND_CHECK_DEVELOPMENT,
     COMMAND_VERSIONS,
     COMMAND_UPDATES
 ];
@@ -237,6 +239,9 @@ export const KODRDRIV_DEFAULTS = {
         directory: undefined, // No default directory
         openaiReasoning: DEFAULT_OPENAI_REASONING as 'low' | 'medium' | 'high',
         openaiMaxOutputTokens: DEFAULT_OPENAI_MAX_OUTPUT_TOKENS,
+    },
+    precommit: {
+        fix: false, // Auto-fix linting issues before running precommit checks
     },
     publish: {
         mergeMethod: DEFAULT_MERGE_METHOD,

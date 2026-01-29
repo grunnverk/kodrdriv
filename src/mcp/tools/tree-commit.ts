@@ -62,6 +62,7 @@ export async function executeTreeCommit(args: any, context: ToolExecutionContext
                 config.commit = {};
             }
             config.commit.sendit = args.sendit || false;
+            config.commit.add = true; // Always stage all changes in MCP tree commit workflow
             // Set reasoning level for commit operations (default: low for faster commits)
             config.openaiReasoning = args.openaiReasoning || 'low';
             config.commit.openaiReasoning = args.openaiReasoning || 'low';

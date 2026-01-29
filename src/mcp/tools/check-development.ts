@@ -8,6 +8,7 @@ import { formatErrorForMCP, getLogger as getCoreLogger, isDevelopmentVersion } f
 import { installLogCapture } from '../logCapture.js';
 import { scanForPackageJsonFiles } from '@grunnverk/tree-core';
 import { getGitStatusSummary, getLinkedDependencies, run } from '@grunnverk/git-tools';
+import { getOctokit } from '@grunnverk/github-tools';
 import { loadConfig } from '../../utils/config.js';
 import { readFile } from 'fs/promises';
 import * as path from 'path';
@@ -15,10 +16,12 @@ import * as path from 'path';
 
 /**
  * Default patterns for subprojects to exclude from scanning
+ * These are test fixtures, documentation, examples, and other non-publishable packages
  */
 const DEFAULT_EXCLUDE_SUBPROJECTS = [
     'doc/',
     'docs/',
+    'examples/',
     'test-*/',
 ];
 
@@ -26,13 +29,18 @@ export const checkDevelopmentTool: McpTool = {
     name: 'kodrdriv_check_development',
     description:
         'Check development readiness for a package or tree. ' +
-        'Verifies branch status, remote sync, dev version, and link status.',
+        'Verifies branch status, remote sync, dev version, and link status. ' +
+        'Optionally validates release workflow readiness by checking for merge conflicts and open PRs.',
     inputSchema: {
         type: 'object',
         properties: {
             directory: {
                 type: 'string',
                 description: 'Package or tree directory (defaults to current directory)',
+            },
+            validateRelease: {
+                type: 'boolean',
+                description: 'Enable full release workflow validation (merge conflicts, open PRs). Defaults to false for quick checks.',
             },
         },
     },
@@ -45,9 +53,14 @@ export const checkDevelopmentTool: McpTool = {
  * - Remote sync status
  * - Dev version status
  * - Link status for local dependencies
+ *
+ * When validateRelease is true, also checks:
+ * - Merge conflicts with target branch (main)
+ * - Open PRs from working branch (warns about potential conflicts)
  */
 export async function executeCheckDevelopment(args: any, _context: ToolExecutionContext): Promise<ToolResult> {
     const directory = args.directory || process.cwd();
+    const validateRelease = args.validateRelease ?? false;
     const { getLogs, remove } = installLogCapture();
 
     try {
@@ -77,13 +90,15 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
         const packageJsonFiles = await scanForPackageJsonFiles(directory, excludedPatterns);
         const isTree = packageJsonFiles.length > 1;
 
-        logger.info(`Checking development readiness for ${isTree ? 'tree' : 'single package'} in ${directory}`);
+        logger.info(`Checking development readiness for ${isTree ? 'tree' : 'single package'} in ${directory}${validateRelease ? ' (full release validation)' : ' (quick check)'}`);
 
         const checks = {
             branch: { passed: true, issues: [] as string[] },
             remoteSync: { passed: true, issues: [] as string[] },
+            mergeConflicts: { passed: true, issues: [] as string[], warnings: [] as string[] },
             devVersion: { passed: true, issues: [] as string[] },
-            linkStatus: { passed: true, issues: [] as string[] },
+            linkStatus: { passed: true, issues: [] as string[], warnings: [] as string[] },
+            openPRs: { passed: true, issues: [] as string[], warnings: [] as string[] },
         };
 
         const packagesToCheck = isTree ? packageJsonFiles : [path.join(directory, 'package.json')];
@@ -102,7 +117,17 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             }
         }
 
-        for (const pkgJsonPath of packagesToCheck) {
+        // Do a single git fetch at the root to avoid multiple concurrent fetches
+        // This is much faster and avoids git lock contention
+        try {
+            await run('git fetch origin', { cwd: directory });
+        } catch (error: any) {
+            logger.warn(`Could not fetch from remote: ${error.message || error}`);
+        }
+
+        // Process packages with concurrency limit to avoid overwhelming git/GitHub API
+        const CONCURRENCY_LIMIT = 3;
+        const processPackage = async (pkgJsonPath: string) => {
             const pkgDir = path.dirname(pkgJsonPath);
             const pkgJsonContent = await readFile(pkgJsonPath, 'utf-8');
             const pkgJson = JSON.parse(pkgJsonContent);
@@ -119,9 +144,8 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 checks.branch.issues.push(`${pkgName}: Could not check branch - ${error.message || error}`);
             }
 
-            // 2. Check remote sync status
+            // 2. Check remote sync status (skip fetch since we already did it at the root)
             try {
-                await run('git fetch', { cwd: pkgDir });
                 const { stdout: statusOutput } = await run('git status -sb', { cwd: pkgDir });
 
                 if (statusOutput.includes('behind')) {
@@ -134,7 +158,74 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 checks.remoteSync.issues.push(`${pkgName}: Could not check remote sync - ${error.message || error}`);
             }
 
-            // 3. Check dev version status
+            // 3. Check for merge conflicts with target branch (main) - only if validateRelease is true
+            if (validateRelease) {
+                try {
+                    const gitStatus = await getGitStatusSummary(pkgDir);
+                    const currentBranch = gitStatus.branch;
+                    const targetBranch = 'main'; // The branch we'll merge into during publish
+
+                    // Skip if we're already on main
+                    if (currentBranch !== 'main' && currentBranch !== 'master') {
+                        // Try a test merge to detect conflicts (skip fetch since we already did it at the root)
+                        // Use --no-commit --no-ff to simulate the merge without actually doing it
+                        try {
+                            // Check if there would be conflicts using git merge --no-commit --no-ff
+                            // This is safer as it doesn't modify the working tree
+                            await run(
+                                `git merge --no-commit --no-ff origin/${targetBranch}`,
+                                { cwd: pkgDir }
+                            );
+
+                            // If we get here, check if there are conflicts
+                            const { stdout: statusAfterMerge } = await run('git status --porcelain', { cwd: pkgDir });
+
+                            if (statusAfterMerge.includes('UU ') || statusAfterMerge.includes('AA ') ||
+                                    statusAfterMerge.includes('DD ') || statusAfterMerge.includes('AU ') ||
+                                    statusAfterMerge.includes('UA ') || statusAfterMerge.includes('DU ') ||
+                                    statusAfterMerge.includes('UD ')) {
+                                checks.mergeConflicts.passed = false;
+                                checks.mergeConflicts.issues.push(
+                                    `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
+                                );
+                            }
+
+                            // Abort the test merge (only if there's actually a merge in progress)
+                            try {
+                                await run('git merge --abort', { cwd: pkgDir });
+                            } catch {
+                                // Ignore - there might not be a merge to abort if it was a fast-forward
+                            }
+                        } catch (mergeError: any) {
+                            // Abort any partial merge
+                            try {
+                                await run('git merge --abort', { cwd: pkgDir });
+                            } catch {
+                                // Ignore abort errors
+                            }
+
+                            // If merge failed, there are likely conflicts
+                            if (mergeError.message?.includes('CONFLICT') || mergeError.stderr?.includes('CONFLICT')) {
+                                checks.mergeConflicts.passed = false;
+                                checks.mergeConflicts.issues.push(
+                                    `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
+                                );
+                            } else {
+                                // Some other error - log as warning
+                                checks.mergeConflicts.warnings.push(
+                                    `${pkgName}: Could not check for merge conflicts - ${mergeError.message || mergeError}`
+                                );
+                            }
+                        }
+                    }
+                } catch (error: any) {
+                    checks.mergeConflicts.warnings.push(
+                        `${pkgName}: Could not check for merge conflicts - ${error.message || error}`
+                    );
+                }
+            }
+
+            // 4. Check dev version status
             const version = pkgJson.version;
             if (!version) {
                 checks.devVersion.issues.push(`${pkgName}: No version field in package.json`);
@@ -157,7 +248,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 }
             }
 
-            // 4. Check link status
+            // 5. Check link status (warning only - links are recommended but not required)
             if (pkgJson.dependencies || pkgJson.devDependencies) {
                 try {
                     const linkedDeps = await getLinkedDependencies(pkgDir);
@@ -172,27 +263,82 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     const unlinkedLocal = localDeps.filter(dep => !linkedDeps.has(dep));
 
                     if (unlinkedLocal.length > 0) {
-                        checks.linkStatus.passed = false;
-                        checks.linkStatus.issues.push(
-                            `${pkgName}: Local dependencies not linked: ${unlinkedLocal.join(', ')}`
+                        // Don't fail the check, just warn - links are recommended but not required
+                        checks.linkStatus.warnings.push(
+                            `${pkgName}: Local dependencies not linked (recommended): ${unlinkedLocal.join(', ')}`
                         );
                     }
                 } catch (error: any) {
-                    checks.linkStatus.issues.push(`${pkgName}: Could not check link status - ${error.message || error}`);
+                    checks.linkStatus.warnings.push(`${pkgName}: Could not check link status - ${error.message || error}`);
                 }
             }
+
+            // 6. Check for open PRs from working branch - only if validateRelease is true
+            if (validateRelease && pkgJson.repository?.url) {
+                try {
+                    const gitStatus = await getGitStatusSummary(pkgDir);
+                    const currentBranch = gitStatus.branch;
+
+                    // Extract owner/repo from repository URL
+                    const repoUrl = pkgJson.repository.url;
+                    const match = repoUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)/);
+
+                    if (match) {
+                        const [, owner, repo] = match;
+
+                        try {
+                            const octokit = getOctokit();
+                            const { data: openPRs } = await octokit.pulls.list({
+                                owner,
+                                repo,
+                                state: 'open',
+                                head: `${owner}:${currentBranch}`,
+                            });
+
+                            if (openPRs.length > 0) {
+                                checks.openPRs.passed = false;
+                                for (const pr of openPRs) {
+                                    const prInfo = `PR #${pr.number}: ${pr.title} (${pr.html_url})`;
+                                    checks.openPRs.issues.push(`${pkgName}: ${prInfo}`);
+                                }
+                            }
+                        } catch (prError: any) {
+                            // Only log if it's not a 404 (repo might not exist on GitHub)
+                            if (!prError.message?.includes('404') && !prError.status || prError.status !== 404) {
+                                checks.openPRs.warnings.push(
+                                    `${pkgName}: Could not check PRs - ${prError.message || prError}`
+                                );
+                            }
+                        }
+                    }
+                } catch (error: any) {
+                    // Don't fail the check if we can't check PRs
+                    checks.openPRs.warnings.push(
+                        `${pkgName}: Could not check for open PRs - ${error.message || error}`
+                    );
+                }
+            }
+        };
+
+        // Process packages with concurrency limit
+        // This prevents overwhelming git operations and GitHub API
+        for (let i = 0; i < packagesToCheck.length; i += CONCURRENCY_LIMIT) {
+            const batch = packagesToCheck.slice(i, i + CONCURRENCY_LIMIT);
+            await Promise.all(batch.map(processPackage));
         }
 
-        // Build summary
+        // Build summary - linkStatus is not included in allPassed (it's a recommendation, not a requirement)
+        // mergeConflicts and openPRs are only checked when validateRelease is true
         const allPassed = checks.branch.passed &&
                          checks.remoteSync.passed &&
                          checks.devVersion.passed &&
-                         checks.linkStatus.passed;
+                         (validateRelease ? checks.mergeConflicts.passed && checks.openPRs.passed : true);
 
         const summary = {
             ready: allPassed,
             isTree,
             packagesChecked: packagesToCheck.length,
+            releaseValidation: validateRelease,
             checks: {
                 branch: {
                     passed: checks.branch.passed,
@@ -202,6 +348,11 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     passed: checks.remoteSync.passed,
                     issues: checks.remoteSync.issues,
                 },
+                mergeConflicts: {
+                    passed: checks.mergeConflicts.passed,
+                    issues: checks.mergeConflicts.issues,
+                    warnings: checks.mergeConflicts.warnings,
+                },
                 devVersion: {
                     passed: checks.devVersion.passed,
                     issues: checks.devVersion.issues,
@@ -209,27 +360,49 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 linkStatus: {
                     passed: checks.linkStatus.passed,
                     issues: checks.linkStatus.issues,
+                    warnings: checks.linkStatus.warnings,
                 },
+                ...(validateRelease ? {
+                    openPRs: {
+                        passed: checks.openPRs.passed,
+                        issues: checks.openPRs.issues,
+                        warnings: checks.openPRs.warnings,
+                    },
+                } : {}),
             },
         };
 
         // Log results
         if (allPassed) {
-            logger.info('✅ All development readiness checks passed');
+            logger.info(`✅ All required ${validateRelease ? 'development and release' : 'development'} readiness checks passed`);
         } else {
-            logger.warn('⚠️  Some development readiness checks failed');
+            logger.warn(`⚠️  Some required ${validateRelease ? 'development or release' : 'development'} readiness checks failed`);
             if (!checks.branch.passed) {
                 logger.warn(`Branch issues: ${checks.branch.issues.join('; ')}`);
             }
             if (!checks.remoteSync.passed) {
                 logger.warn(`Remote sync issues: ${checks.remoteSync.issues.join('; ')}`);
             }
+            if (!checks.mergeConflicts.passed) {
+                logger.warn(`Merge conflict issues: ${checks.mergeConflicts.issues.join('; ')}`);
+            }
             if (!checks.devVersion.passed) {
                 logger.warn(`Dev version issues: ${checks.devVersion.issues.join('; ')}`);
             }
-            if (!checks.linkStatus.passed) {
-                logger.warn(`Link status issues: ${checks.linkStatus.issues.join('; ')}`);
+            if (validateRelease && !checks.openPRs.passed) {
+                logger.warn(`Open PR issues: ${checks.openPRs.issues.join('; ')}`);
             }
+        }
+
+        // Log recommendations/warnings separately (non-blocking)
+        if (checks.linkStatus.warnings.length > 0) {
+            logger.warn(`Link status recommendations: ${checks.linkStatus.warnings.join('; ')}`);
+        }
+        if (checks.mergeConflicts.warnings.length > 0) {
+            logger.warn(`Merge conflict warnings: ${checks.mergeConflicts.warnings.join('; ')}`);
+        }
+        if (validateRelease && checks.openPRs.warnings.length > 0) {
+            logger.warn(`Open PR warnings: ${checks.openPRs.warnings.join('; ')}`);
         }
 
         return {

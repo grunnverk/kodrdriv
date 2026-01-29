@@ -129,18 +129,18 @@ describe('check-development tool', () => {
 
             const { checks } = result.data as any;
 
-            // Link status should fail because local packages are not linked
-            expect(checks.linkStatus.passed).toBe(false);
+            // Link status should pass (warnings are recommendations, not failures)
+            expect(checks.linkStatus.passed).toBe(true);
 
-            // Should only report unlinked LOCAL packages, not external scoped packages
-            expect(checks.linkStatus.issues).toHaveLength(1);
-            expect(checks.linkStatus.issues[0]).toContain('@workspace/pkg-c');
+            // Should only report unlinked LOCAL packages as warnings, not external scoped packages
+            expect(checks.linkStatus.warnings).toHaveLength(1);
+            expect(checks.linkStatus.warnings[0]).toContain('@workspace/pkg-c');
 
             // Should NOT contain external scoped packages
-            expect(checks.linkStatus.issues[0]).not.toContain('@types/node');
-            expect(checks.linkStatus.issues[0]).not.toContain('@typescript-eslint/parser');
-            expect(checks.linkStatus.issues[0]).not.toContain('@vitest/coverage-v8');
-            expect(checks.linkStatus.issues[0]).not.toContain('@types/jest');
+            expect(checks.linkStatus.warnings[0]).not.toContain('@types/node');
+            expect(checks.linkStatus.warnings[0]).not.toContain('@typescript-eslint/parser');
+            expect(checks.linkStatus.warnings[0]).not.toContain('@vitest/coverage-v8');
+            expect(checks.linkStatus.warnings[0]).not.toContain('@types/jest');
         });
 
         it('should pass link status check when all local packages are linked', async () => {

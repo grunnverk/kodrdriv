@@ -16,6 +16,7 @@ import { loadConfig } from '../../utils/config.js';
 const DEFAULT_EXCLUDE_SUBPROJECTS = [
     'doc/',
     'docs/',
+    'examples/',
     'test-*/',
 ];
 

@@ -23,7 +23,7 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 
 1. **Initial Precommit Check**
    - **ALWAYS use the MCP tool**: Run `kodrdriv_tree_precommit` with `fix=true`, `parallel=true`, and `directory="/Users/tobrien/gitw/grunnverk"`
-   - **CRITICAL: Use `parallel=true`** - This dramatically speeds up execution for large monorepos by running independent packages concurrently
+   - **DEFAULT: `parallel=true`** - This is the default and recommended setting. It dramatically speeds up execution for large monorepos by running independent packages concurrently (reduces time from 20-30 minutes to 5-10 minutes)
    - **DO NOT** fall back to manual command-line execution (`npx kodrdriv tree precommit`) unless the MCP tool is completely broken
    - If the MCP tool fails, investigate the error message carefully - it will tell you which package failed and why
    - This will execute precommit checks (linting, type checking, tests, build) across all packages, respecting dependency order even in parallel mode
@@ -45,7 +45,7 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 
 3. **Resume from Failure Point**
    - After fixing issues, use `start_from` parameter to resume from the package that failed
-   - **ALWAYS include `parallel=true`** when resuming - it significantly reduces wait time
+   - **DEFAULT: `parallel=true`** - Always use parallel mode when resuming (it's the default)
    - This avoids re-running checks on packages that already passed, saving significant time in large projects
    - Example: If package `@grunnverk/core` failed, run `kodrdriv_tree_precommit` with `start_from="@grunnverk/core"`, `parallel=true`, and `fix=true`
    - The `start_from` parameter accepts either package name (e.g., `@grunnverk/core`) or directory name (e.g., `core`)
@@ -62,7 +62,7 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 
 - **ALWAYS use MCP tools**: Use `kodrdriv_tree_precommit`, `kodrdriv_tree_commit`, etc. - do NOT fall back to manual command-line execution
 - **Monorepo Root**: Always use `directory="/Users/tobrien/gitw/grunnverk"` - kodrdriv is a subdirectory, not the root
-- **Parallel Execution**: **ALWAYS use `parallel=true`** - This is critical for large monorepos as it can reduce execution time from 20-30 minutes to 5-10 minutes by running independent packages concurrently
+- **Parallel Execution (DEFAULT)**: `parallel=true` is the default and recommended setting - it reduces execution time from 20-30 minutes to 5-10 minutes by running independent packages concurrently. Always use it unless you have a specific reason not to.
 - **Efficiency**: For large monorepos, always use `start_from` to resume from failures rather than restarting the entire process
 - **Dependency Order**: The tree commands process packages in dependency order, even in parallel mode - independent packages run concurrently while respecting dependencies
 - **Fix Flag**: Use `fix=true` to enable auto-fixing where possible, but manual fixes may still be required
@@ -78,7 +78,7 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 2. kodrdriv_tree_precommit({
      directory: "/Users/tobrien/gitw/grunnverk",
      fix: true,
-     parallel: true  // CRITICAL: Speeds up execution significantly
+     parallel: true  // DEFAULT: Use parallel mode (dramatically speeds up execution)
    })
    → Fails at package "@grunnverk/commands-git"
    → Error: "Command failed in package @grunnverk/commands-git"
@@ -89,12 +89,12 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 4. kodrdriv_tree_precommit({
      directory: "/Users/tobrien/gitw/grunnverk",
      fix: true,
-     parallel: true,  // ALWAYS include parallel=true
+     parallel: true,  // DEFAULT: Always use parallel mode
      start_from: "commands-git"  // or "@grunnverk/commands-git"
    })
    → Continues from commands-git, may fail at next package
 
-5. Repeat until all pass (always using MCP tools with parallel=true, never manual commands)
+5. Repeat until all pass (always using MCP tools with parallel=true by default, never manual commands)
 
 6. kodrdriv_tree_commit({
      directory: "/Users/tobrien/gitw/grunnverk",
