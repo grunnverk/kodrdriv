@@ -150,6 +150,13 @@ Never let one project's failure prevent checking the others. Parallel execution 
 
 ## What Gets Checked
 
+### Performance Optimizations
+
+The tool includes several optimizations to prevent hangs and improve performance:
+- **Single git fetch**: Performs one fetch at the repository root instead of per-package
+- **Concurrency limiting**: Processes packages in batches of 3 to avoid overwhelming git operations and GitHub API
+- **Conditional checks**: Expensive checks (merge conflicts, PR status) only run when `validateRelease: true`
+
 ### Always Checked (Quick & Full)
 
 #### 1. Branch Status

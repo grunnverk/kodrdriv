@@ -117,7 +117,17 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             }
         }
 
-        for (const pkgJsonPath of packagesToCheck) {
+        // Do a single git fetch at the root to avoid multiple concurrent fetches
+        // This is much faster and avoids git lock contention
+        try {
+            await run('git fetch origin', { cwd: directory });
+        } catch (error: any) {
+            logger.warn(`Could not fetch from remote: ${error.message || error}`);
+        }
+
+        // Process packages with concurrency limit to avoid overwhelming git/GitHub API
+        const CONCURRENCY_LIMIT = 3;
+        const processPackage = async (pkgJsonPath: string) => {
             const pkgDir = path.dirname(pkgJsonPath);
             const pkgJsonContent = await readFile(pkgJsonPath, 'utf-8');
             const pkgJson = JSON.parse(pkgJsonContent);
@@ -134,9 +144,8 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 checks.branch.issues.push(`${pkgName}: Could not check branch - ${error.message || error}`);
             }
 
-            // 2. Check remote sync status
+            // 2. Check remote sync status (skip fetch since we already did it at the root)
             try {
-                await run('git fetch', { cwd: pkgDir });
                 const { stdout: statusOutput } = await run('git status -sb', { cwd: pkgDir });
 
                 if (statusOutput.includes('behind')) {
@@ -149,72 +158,71 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 checks.remoteSync.issues.push(`${pkgName}: Could not check remote sync - ${error.message || error}`);
             }
 
-            // 3. Check for merge conflicts with target branch (main) - ALWAYS CHECK THIS
-            try {
-                const gitStatus = await getGitStatusSummary(pkgDir);
-                const currentBranch = gitStatus.branch;
-                const targetBranch = 'main'; // The branch we'll merge into during publish
+            // 3. Check for merge conflicts with target branch (main) - only if validateRelease is true
+            if (validateRelease) {
+                try {
+                    const gitStatus = await getGitStatusSummary(pkgDir);
+                    const currentBranch = gitStatus.branch;
+                    const targetBranch = 'main'; // The branch we'll merge into during publish
 
-                // Skip if we're already on main
-                if (currentBranch !== 'main' && currentBranch !== 'master') {
-                    // Fetch latest to ensure we have up-to-date refs
-                    await run('git fetch origin', { cwd: pkgDir });
-
-                    // Try a test merge to detect conflicts
-                    // Use --no-commit --no-ff to simulate the merge without actually doing it
-                    try {
-                        // Check if there would be conflicts using git merge --no-commit --no-ff
-                        // This is safer as it doesn't modify the working tree
-                        await run(
-                            `git merge --no-commit --no-ff origin/${targetBranch}`,
-                            { cwd: pkgDir }
-                        );
-
-                        // If we get here, check if there are conflicts
-                        const { stdout: statusAfterMerge } = await run('git status --porcelain', { cwd: pkgDir });
-
-                        if (statusAfterMerge.includes('UU ') || statusAfterMerge.includes('AA ') ||
-                                statusAfterMerge.includes('DD ') || statusAfterMerge.includes('AU ') ||
-                                statusAfterMerge.includes('UA ') || statusAfterMerge.includes('DU ') ||
-                                statusAfterMerge.includes('UD ')) {
-                            checks.mergeConflicts.passed = false;
-                            checks.mergeConflicts.issues.push(
-                                `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
-                            );
-                        }
-
-                        // Abort the test merge (only if there's actually a merge in progress)
+                    // Skip if we're already on main
+                    if (currentBranch !== 'main' && currentBranch !== 'master') {
+                        // Try a test merge to detect conflicts (skip fetch since we already did it at the root)
+                        // Use --no-commit --no-ff to simulate the merge without actually doing it
                         try {
-                            await run('git merge --abort', { cwd: pkgDir });
-                        } catch {
-                            // Ignore - there might not be a merge to abort if it was a fast-forward
-                        }
-                    } catch (mergeError: any) {
-                        // Abort any partial merge
-                        try {
-                            await run('git merge --abort', { cwd: pkgDir });
-                        } catch {
-                            // Ignore abort errors
-                        }
+                            // Check if there would be conflicts using git merge --no-commit --no-ff
+                            // This is safer as it doesn't modify the working tree
+                            await run(
+                                `git merge --no-commit --no-ff origin/${targetBranch}`,
+                                { cwd: pkgDir }
+                            );
 
-                        // If merge failed, there are likely conflicts
-                        if (mergeError.message?.includes('CONFLICT') || mergeError.stderr?.includes('CONFLICT')) {
-                            checks.mergeConflicts.passed = false;
-                            checks.mergeConflicts.issues.push(
-                                `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
-                            );
-                        } else {
-                            // Some other error - log as warning
-                            checks.mergeConflicts.warnings.push(
-                                `${pkgName}: Could not check for merge conflicts - ${mergeError.message || mergeError}`
-                            );
+                            // If we get here, check if there are conflicts
+                            const { stdout: statusAfterMerge } = await run('git status --porcelain', { cwd: pkgDir });
+
+                            if (statusAfterMerge.includes('UU ') || statusAfterMerge.includes('AA ') ||
+                                    statusAfterMerge.includes('DD ') || statusAfterMerge.includes('AU ') ||
+                                    statusAfterMerge.includes('UA ') || statusAfterMerge.includes('DU ') ||
+                                    statusAfterMerge.includes('UD ')) {
+                                checks.mergeConflicts.passed = false;
+                                checks.mergeConflicts.issues.push(
+                                    `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
+                                );
+                            }
+
+                            // Abort the test merge (only if there's actually a merge in progress)
+                            try {
+                                await run('git merge --abort', { cwd: pkgDir });
+                            } catch {
+                                // Ignore - there might not be a merge to abort if it was a fast-forward
+                            }
+                        } catch (mergeError: any) {
+                            // Abort any partial merge
+                            try {
+                                await run('git merge --abort', { cwd: pkgDir });
+                            } catch {
+                                // Ignore abort errors
+                            }
+
+                            // If merge failed, there are likely conflicts
+                            if (mergeError.message?.includes('CONFLICT') || mergeError.stderr?.includes('CONFLICT')) {
+                                checks.mergeConflicts.passed = false;
+                                checks.mergeConflicts.issues.push(
+                                    `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
+                                );
+                            } else {
+                                // Some other error - log as warning
+                                checks.mergeConflicts.warnings.push(
+                                    `${pkgName}: Could not check for merge conflicts - ${mergeError.message || mergeError}`
+                                );
+                            }
                         }
                     }
+                } catch (error: any) {
+                    checks.mergeConflicts.warnings.push(
+                        `${pkgName}: Could not check for merge conflicts - ${error.message || error}`
+                    );
                 }
-            } catch (error: any) {
-                checks.mergeConflicts.warnings.push(
-                    `${pkgName}: Could not check for merge conflicts - ${error.message || error}`
-                );
             }
 
             // 4. Check dev version status
@@ -310,16 +318,21 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     );
                 }
             }
+        };
+
+        // Process packages with concurrency limit
+        // This prevents overwhelming git operations and GitHub API
+        for (let i = 0; i < packagesToCheck.length; i += CONCURRENCY_LIMIT) {
+            const batch = packagesToCheck.slice(i, i + CONCURRENCY_LIMIT);
+            await Promise.all(batch.map(processPackage));
         }
 
         // Build summary - linkStatus is not included in allPassed (it's a recommendation, not a requirement)
-        // mergeConflicts is ALWAYS checked (critical for preventing post-merge failures)
-        // openPRs is only checked when validateRelease is true
+        // mergeConflicts and openPRs are only checked when validateRelease is true
         const allPassed = checks.branch.passed &&
                          checks.remoteSync.passed &&
-                         checks.mergeConflicts.passed &&
                          checks.devVersion.passed &&
-                         (validateRelease ? checks.openPRs.passed : true);
+                         (validateRelease ? checks.mergeConflicts.passed && checks.openPRs.passed : true);
 
         const summary = {
             ready: allPassed,
