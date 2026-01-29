@@ -370,16 +370,6 @@ async function main() {
         }
     );
 
-    registerTool(
-        'kodrdriv_tree_precommit',
-        'Run precommit checks across all packages in monorepo. Executes linting, tests, and builds in dependency order.',
-        {
-            directory: z.string().optional(),
-            packages: z.array(z.string()).optional(),
-            fix: z.boolean().optional(),
-            start_from: z.string().optional(),
-        }
-    );
 
     registerTool(
         'kodrdriv_tree_link',

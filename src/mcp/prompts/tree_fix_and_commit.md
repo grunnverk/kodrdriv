@@ -2,7 +2,7 @@
 
 ## Objective
 
-Ensure that precommit checks pass successfully across the entire monorepo tree. When failures occur, understand the root cause, fix the issues, and resume from the point of failure rather than restarting from the beginning.
+Ensure that precommit checks pass successfully across the entire monorepo tree. When failures occur, understand the root cause, fix the issues, and continue checking remaining packages rather than restarting from the beginning.
 
 ## Prerequisites
 
@@ -12,6 +12,7 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 - Confirms this is a tree operation (`packages.length > 1`)
 - Provides the list of all packages in the monorepo
 - Shows the root directory of the monorepo
+- Shows the dependency order of packages
 
 **IMPORTANT**: The monorepo root directory is `/Users/tobrien/gitw/grunnverk`, NOT `/Users/tobrien/gitw/grunnverk/kodrdriv`.
 - `kodrdriv` is a subdirectory within the `grunnverk` monorepo
@@ -21,18 +22,20 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 
 ## Workflow Steps
 
-1. **Initial Precommit Check**
-   - **ALWAYS use the MCP tool**: Run `kodrdriv_tree_precommit` with `fix=true`, `parallel=true`, and `directory="/Users/tobrien/gitw/grunnverk"`
-   - **DEFAULT: `parallel=true`** - This is the default and recommended setting. It dramatically speeds up execution for large monorepos by running independent packages concurrently (reduces time from 20-30 minutes to 5-10 minutes)
-   - **DO NOT** fall back to manual command-line execution (`npx kodrdriv tree precommit`) unless the MCP tool is completely broken
-   - If the MCP tool fails, investigate the error message carefully - it will tell you which package failed and why
-   - This will execute precommit checks (linting, type checking, tests, build) across all packages, respecting dependency order even in parallel mode
+1. **Get Package List and Order**
+   - Fetch `kodrdriv://workspace/Users/tobrien/gitw/grunnverk` to get the list of packages in dependency order
+   - This tells you which packages to check and in what order
 
-2. **Handle Failures**
-   - **If the MCP tool fails**: The error message will indicate which package failed (e.g., "Command failed in package @grunnverk/tree-execution")
-   - **DO NOT** switch to manual command-line execution - continue using the MCP tool with `start_from` parameter
-   - Carefully analyze the error output to understand:
-     - Which package failed
+2. **Run Individual Precommit Checks with Concurrency**
+   - **DO NOT** use `kodrdriv_tree_precommit` - it takes too long and provides little benefit
+   - **INSTEAD**: Run `kodrdriv_precommit` on individual packages in dependency order
+   - **Use concurrency control**: Run 3-4 packages at a time in parallel
+   - **Process in batches**: Group independent packages (those at the same dependency level) and run them concurrently
+   - Example: If packages A, B, C have no dependencies on each other, run their precommits in parallel (3-4 at a time)
+   - Example: If package D depends on A, B, C, wait for A, B, C to complete before running D's precommit
+
+3. **Handle Failures**
+   - If a package's precommit fails, analyze the error output to understand:
      - What type of error occurred (lint error, type error, test failure, build failure)
      - The specific files and lines involved
    - Fix the issues in the failing package:
@@ -42,61 +45,63 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
      - For build failures: Fix compilation or bundling issues
      - For coverage drops: Add tests to maintain coverage thresholds
        - **Tip**: If the project uses lcov format for coverage reports and you're struggling with coverage thresholds, consider using the `brennpunkt` MCP server tools (e.g., `brennpunkt_get_priorities`, `brennpunkt_coverage_summary`, `brennpunkt_get_file_coverage`) to identify high-priority files and understand coverage gaps. Install brennpunkt as an MCP server with: `npx -y -p @redaksjon/brennpunkt brennpunkt-mcp`
+   - After fixing, re-run `kodrdriv_precommit` for that specific package with `fix=true`
 
-3. **Resume from Failure Point**
-   - After fixing issues, use `start_from` parameter to resume from the package that failed
-   - **DEFAULT: `parallel=true`** - Always use parallel mode when resuming (it's the default)
-   - This avoids re-running checks on packages that already passed, saving significant time in large projects
-   - Example: If package `@grunnverk/core` failed, run `kodrdriv_tree_precommit` with `start_from="@grunnverk/core"`, `parallel=true`, and `fix=true`
-   - The `start_from` parameter accepts either package name (e.g., `@grunnverk/core`) or directory name (e.g., `core`)
+4. **Continue with Remaining Packages**
+   - After fixing a failed package, continue checking the remaining packages
+   - Keep track of which packages have passed and which still need to be checked
+   - Continue running 3-4 packages at a time in parallel, respecting dependency order
 
-4. **Iterate Until Success**
-   - Repeat steps 2-3 until all packages pass precommit checks
-   - Each iteration should resume from the last failing package
+5. **Iterate Until All Pass**
+   - Repeat steps 2-4 until all packages pass precommit checks
+   - Track progress: note which packages have passed and which are remaining
 
-5. **Commit Changes**
+6. **Commit Changes**
    - Once all precommit checks pass, commit the fixes using `kodrdriv_tree_commit` with `sendit=true`
    - The commit message will be automatically generated from the changes
 
 ## Important Notes
 
-- **ALWAYS use MCP tools**: Use `kodrdriv_tree_precommit`, `kodrdriv_tree_commit`, etc. - do NOT fall back to manual command-line execution
+- **Individual Package Precommits**: Always use `kodrdriv_precommit` on individual packages, NOT `kodrdriv_tree_precommit`
+- **Concurrency Control**: Run 3-4 packages at a time in parallel to balance speed and resource usage
+- **Dependency Order**: Respect package dependencies - don't run a package's precommit until its dependencies have passed
 - **Monorepo Root**: Always use `directory="/Users/tobrien/gitw/grunnverk"` - kodrdriv is a subdirectory, not the root
-- **Parallel Execution (DEFAULT)**: `parallel=true` is the default and recommended setting - it reduces execution time from 20-30 minutes to 5-10 minutes by running independent packages concurrently. Always use it unless you have a specific reason not to.
-- **Efficiency**: For large monorepos, always use `start_from` to resume from failures rather than restarting the entire process
-- **Dependency Order**: The tree commands process packages in dependency order, even in parallel mode - independent packages run concurrently while respecting dependencies
 - **Fix Flag**: Use `fix=true` to enable auto-fixing where possible, but manual fixes may still be required
-- **All Tree Commands Support `start_from`**: The `start_from` parameter works with all tree MCP commands (`kodrdriv_tree_precommit`, `kodrdriv_tree_publish`, `kodrdriv_tree_commit`, etc.)
-- **MCP Tool Failures**: If the MCP tool reports an error, investigate the error message - it contains the package name and failure reason. Continue using the MCP tool with `start_from` and `parallel=true` to resume from the failure point.
+- **Track Progress**: Keep track of which packages have passed, failed, or are pending to avoid redundant work
 
 ## Example Flow
 
 ```
 1. Fetch kodrdriv://workspace/Users/tobrien/gitw/grunnverk
-   → Confirms this is a tree with multiple packages
+   → Returns packages in dependency order:
+     - Level 0: shared-utils, core, git-tools (no dependencies)
+     - Level 1: commands-git, tree-core (depend on Level 0)
+     - Level 2: commands-tree, tree-execution (depend on Level 1)
+     - etc.
 
-2. kodrdriv_tree_precommit({
-     directory: "/Users/tobrien/gitw/grunnverk",
-     fix: true,
-     parallel: true  // DEFAULT: Use parallel mode (dramatically speeds up execution)
-   })
-   → Fails at package "@grunnverk/commands-git"
-   → Error: "Command failed in package @grunnverk/commands-git"
+2. Run Level 0 packages in parallel (3 at a time):
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/shared-utils", fix: true })
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/core", fix: true })
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/git-tools", fix: true })
+   → All pass
 
-3. Analyze error: TypeScript type error in src/git.ts:42
-   → Fix the type error in the commands-git package
+3. Run Level 1 packages in parallel (2 at a time):
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/commands-git", fix: true })
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/tree-core", fix: true })
+   → commands-git fails with TypeScript error
 
-4. kodrdriv_tree_precommit({
-     directory: "/Users/tobrien/gitw/grunnverk",
-     fix: true,
-     parallel: true,  // DEFAULT: Always use parallel mode
-     start_from: "commands-git"  // or "@grunnverk/commands-git"
-   })
-   → Continues from commands-git, may fail at next package
+4. Fix the error in commands-git, then re-run:
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/commands-git", fix: true })
+   → Passes
 
-5. Repeat until all pass (always using MCP tools with parallel=true by default, never manual commands)
+5. Continue with Level 2 packages in parallel:
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/commands-tree", fix: true })
+   kodrdriv_precommit({ directory: "/Users/tobrien/gitw/grunnverk/tree-execution", fix: true })
+   → All pass
 
-6. kodrdriv_tree_commit({
+6. Continue until all packages pass
+
+7. kodrdriv_tree_commit({
      directory: "/Users/tobrien/gitw/grunnverk",
      sendit: true
    })
@@ -105,7 +110,9 @@ Before proceeding, fetch the workspace resource to understand the monorepo struc
 
 ## What NOT to Do
 
+- ❌ **DO NOT** use `kodrdriv_tree_precommit` - it takes too long and provides little benefit
+- ❌ **DO NOT** run all packages sequentially - use concurrency (3-4 at a time)
 - ❌ **DO NOT** run `npx kodrdriv tree precommit` manually from the command line
 - ❌ **DO NOT** use `/Users/tobrien/gitw/grunnverk/kodrdriv` as the directory - that's a subdirectory, not the root
-- ❌ **DO NOT** switch to manual execution if the MCP tool fails - investigate the error and use `start_from` to resume
 - ❌ **DO NOT** run commands from within the kodrdriv directory - always use the grunnverk root
+- ❌ **DO NOT** ignore dependency order - packages must be checked after their dependencies pass
