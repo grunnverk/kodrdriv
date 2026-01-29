@@ -218,7 +218,7 @@ export const closeLogger = async (): Promise<void> => {
     return new Promise((resolve) => {
         // Close all transports
         logger.close();
-        
+
         // Give transports a moment to finish closing
         // Winston's close() is synchronous but file handles may need a tick to release
         setImmediate(() => {
