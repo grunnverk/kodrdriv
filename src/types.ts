@@ -1,4 +1,4 @@
-import * as Cardigantime from '@theunwalked/cardigantime';
+import * as Cardigantime from '@utilarium/cardigantime';
 import { z } from "zod";
 
 export const ConfigSchema = z.object({
