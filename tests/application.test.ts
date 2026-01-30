@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 
 // Mock all external dependencies
-vi.mock('@theunwalked/cardigantime', () => ({
+vi.mock('@utilarium/cardigantime', () => ({
     create: vi.fn()
 }));
 
@@ -127,7 +127,7 @@ describe('Application module', () => {
         vi.clearAllMocks();
 
         // Import modules after mocking
-        Cardigantime = await import('@theunwalked/cardigantime');
+        Cardigantime = await import('@utilarium/cardigantime');
         Logging = await import('../src/logging');
         Arguments = await import('../src/arguments');
         Commands = {
