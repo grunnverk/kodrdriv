@@ -24,7 +24,6 @@ import { checkDevelopmentTool, executeCheckDevelopment } from './check-developme
 // Tree tools
 import { treeCommitTool, executeTreeCommit } from './tree-commit.js';
 import { treePublishTool, executeTreePublish } from './tree-publish.js';
-import { treePrecommitTool, executeTreePrecommit } from './tree-precommit.js';
 import { treeLinkTool, executeTreeLink } from './tree-link.js';
 import { treeLinkStatusTool, executeTreeLinkStatus } from './tree-link-status.js';
 import { treeUnlinkTool, executeTreeUnlink } from './tree-unlink.js';
@@ -75,8 +74,6 @@ export async function executeTool(
                 return await executeTreeCommit(args, context);
             case 'kodrdriv_tree_publish':
                 return await executeTreePublish(args, context);
-            case 'kodrdriv_tree_precommit':
-                return await executeTreePrecommit(args, context);
             case 'kodrdriv_tree_link':
                 return await executeTreeLink(args, context);
             case 'kodrdriv_tree_link_status':
@@ -133,7 +130,6 @@ export const tools: McpTool[] = [
     // Tree tools
     treeCommitTool,
     treePublishTool,
-    treePrecommitTool,
     treeLinkTool,
     treeLinkStatusTool,
     treeUnlinkTool,

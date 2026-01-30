@@ -31,13 +31,13 @@ Optionally, validate release workflow readiness by checking:
    - List all issues found below the table
    - Include a summary showing X/Y projects ready
 
-**Example execution for grunnverk workspace:**
+**Example execution for a monorepo workspace:**
 ```
-// Step 1: Identify all projects
+// Step 1: Identify all projects from workspace paths
 const projects = [
-  '/Users/tobrien/gitw/grunnverk/kilde',
-  '/Users/tobrien/gitw/grunnverk/kodrdriv',
-  '/Users/tobrien/gitw/grunnverk/ai-service',
+  '/path/to/workspace/package1',
+  '/path/to/workspace/package2',
+  '/path/to/workspace/package3',
   // ... all other projects
 ];
 

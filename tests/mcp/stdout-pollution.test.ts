@@ -39,7 +39,6 @@ const ALL_TOOLS = [
     'kodrdriv_pull',
     'kodrdriv_tree_commit',
     'kodrdriv_tree_publish',
-    'kodrdriv_tree_precommit',
     'kodrdriv_tree_link',
     'kodrdriv_tree_unlink',
     'kodrdriv_tree_updates',
@@ -305,9 +304,6 @@ describe.sequential.skip('MCP Workspace Scan Tests', () => {
         }
     });
 
-    it('should not pollute stdout when tree_precommit scans real workspace', async () => {
-        await testTool('kodrdriv_tree_precommit', { directory: pathResolve(root, '..') }, 3000);
-    }, 8000);
 
     it('should not pollute stdout when tree_updates scans real workspace', async () => {
         await testTool('kodrdriv_tree_updates', { directory: pathResolve(root, '..') }, 3000);
