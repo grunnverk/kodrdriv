@@ -2,7 +2,15 @@
 // This MUST be the first thing we do, before any other imports that might load dotenv
 // This ensures that shell-exported variables like OPENAI_API_KEY take precedence
 import { config as dotenvConfig } from 'dotenv';
+
+// Suppress dotenv's tip message by temporarily redirecting both stdout and stderr
+const originalStdoutWrite = process.stdout.write;
+const originalStderrWrite = process.stderr.write;
+process.stdout.write = () => true;
+process.stderr.write = () => true;
 dotenvConfig({ override: false, debug: false });
+process.stdout.write = originalStdoutWrite;
+process.stderr.write = originalStderrWrite;
 
 import * as Cardigantime from '@utilarium/cardigantime';
 import { setLogger as setGitLogger } from '@grunnverk/git-tools';
