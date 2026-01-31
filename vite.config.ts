@@ -90,9 +90,9 @@ export default defineConfig({
                 '@utilarium/dreadcabinet',
                 '@utilarium/cardigantime',
                 '@utilarium/unplayable',
-                '@riotprompt/riotprompt',
-                '@riotprompt/riotprompt/formatter',
-                '@riotprompt/riotprompt/chat'
+                '@kjerneverk/riotprompt',
+                '@kjerneverk/riotprompt/formatter',
+                '@kjerneverk/riotprompt/chat'
             ],
             input: 'src/main.ts',
             output: {

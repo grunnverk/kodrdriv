@@ -1011,7 +1011,7 @@ kodrdriv tree updates --inter-project @grunnverk
 updates:
   scopes:
     - "@grunnverk"
-    - "@riotprompt"
+    - "@kjerneverk"
 ```
 
 For detailed documentation, see [Updates Command](commands/updates.md).

@@ -223,7 +223,7 @@ kodrdriv tree updates --inter-project @grunnverk
 │  ├─ 🔴 openai
 │  │     Current: ^4.87.3, ^6.15.0
 │  │     Recommended: ^6.15.0
-│  │     Reason: Required by @riotprompt/riotprompt peer dependency
+│  │     Reason: Required by @kjerneverk/riotprompt peer dependency
 ```
 
 **Configuration:**
@@ -231,7 +231,7 @@ kodrdriv tree updates --inter-project @grunnverk
 updates:
   scopes:
     - "@grunnverk"
-    - "@riotprompt"
+    - "@kjerneverk"
 ```
 
 For detailed updates documentation, see [Updates Command](updates.md).
