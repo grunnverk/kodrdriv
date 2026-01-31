@@ -9,7 +9,7 @@ import type { KodrdrivUri, ConfigResource } from '../types.js';
 import { getLogger as getCoreLogger } from '@grunnverk/core';
 import { DEFAULT_CONFIG_DIR } from '../../constants.js';
 import { ConfigSchema } from '../../types.js';
-import * as Cardigantime from '@theunwalked/cardigantime';
+import * as Cardigantime from '@utilarium/cardigantime';
 /* eslint-enable import/extensions */
 
 /**

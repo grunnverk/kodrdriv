@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as argumentsModule from '../src/arguments';
 import { Input, InputSchema, transformCliArgs, validateCommand, validateContextDirectories, getCliConfig, validateAndProcessSecureOptions, validateAndProcessOptions, validateConfigDir, configure } from '../src/arguments';
 import { readStdin } from '@grunnverk/shared';
-import type { Cardigantime } from '@theunwalked/cardigantime';
+import type { Cardigantime } from '@utilarium/cardigantime';
 import { ALLOWED_COMMANDS, KODRDRIV_DEFAULTS, DEFAULT_CHARACTER_ENCODING } from '../src/constants';
 
 // readStdin is now mocked in the @grunnverk/shared mock below

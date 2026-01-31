@@ -62,7 +62,7 @@ updates:
   scopes:
     - "@grunnverk"
     - "@riotprompt"
-    - "@theunwalked"
+    - "@utilarium"
 ```
 
 Then simply run:
@@ -355,7 +355,7 @@ updates:
   scopes:
     - "@grunnverk"
     - "@riotprompt"
-    - "@theunwalked"
+    - "@utilarium"
 ```
 
 ### Analysis Defaults

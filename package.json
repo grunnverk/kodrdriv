@@ -1,6 +1,6 @@
 {
   "name": "@grunnverk/kodrdriv",
-  "version": "1.5.7-dev.0",
+  "version": "1.5.9",
   "description": "Create Intelligent Release Notes or Change Logs from Git",
   "main": "dist/main.js",
   "type": "module",
@@ -47,12 +47,12 @@
   },
   "dependencies": {
     "@grunnverk/ai-service": "^1.5.3",
-    "@grunnverk/audio-tools": "^1.5.3",
-    "@grunnverk/commands-audio": "^1.5.3",
-    "@grunnverk/commands-git": "^1.5.5",
-    "@grunnverk/commands-publish": "^1.5.3",
-    "@grunnverk/commands-tree": "^1.5.3",
-    "@grunnverk/core": "^1.5.5",
+    "@grunnverk/audio-tools": "^1.5.5",
+    "@grunnverk/commands-audio": "^1.5.5",
+    "@grunnverk/commands-git": "^1.5.7",
+    "@grunnverk/commands-publish": "^1.5.5",
+    "@grunnverk/commands-tree": "^1.5.5",
+    "@grunnverk/core": "^1.5.7",
     "@grunnverk/git-tools": "^1.5.4",
     "@grunnverk/github-tools": "^1.5.4",
     "@grunnverk/shared": "^1.5.4",
@@ -61,8 +61,8 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@octokit/rest": "^22.0.0",
     "@riotprompt/riotprompt": "^0.0.21",
-    "@theunwalked/cardigantime": "^0.0.23",
-    "@theunwalked/unplayable": "^0.0.28",
+    "@utilarium/cardigantime": "^0.0.24",
+    "@utilarium/unplayable": "^0.0.29",
     "@types/semver": "^7.7.0",
     "commander": "^14.0.0",
     "dayjs": "^1.11.13",
@@ -74,7 +74,7 @@
     "semver": "^7.7.2",
     "shell-escape": "^0.2.0",
     "winston": "^3.17.0",
-    "zod": "^4.1.12"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

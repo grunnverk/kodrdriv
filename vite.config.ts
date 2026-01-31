@@ -87,9 +87,9 @@ export default defineConfig({
                 // MCP dependencies
                 '@modelcontextprotocol/sdk',
                 // External dependencies
-                '@theunwalked/dreadcabinet',
-                '@theunwalked/cardigantime',
-                '@theunwalked/unplayable',
+                '@utilarium/dreadcabinet',
+                '@utilarium/cardigantime',
+                '@utilarium/unplayable',
                 '@riotprompt/riotprompt',
                 '@riotprompt/riotprompt/formatter',
                 '@riotprompt/riotprompt/chat'

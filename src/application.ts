@@ -4,7 +4,7 @@
 import { config as dotenvConfig } from 'dotenv';
 dotenvConfig({ override: false, debug: false });
 
-import * as Cardigantime from '@theunwalked/cardigantime';
+import * as Cardigantime from '@utilarium/cardigantime';
 import { setLogger as setGitLogger } from '@grunnverk/git-tools';
 import { setLogger as setGitHubLogger, setPromptFunction } from '@grunnverk/github-tools';
 import { promptConfirmation } from '@grunnverk/shared';
