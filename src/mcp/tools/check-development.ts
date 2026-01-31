@@ -192,14 +192,14 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
 
                             // Abort the test merge (only if there's actually a merge in progress)
                             try {
-                                await run('git merge --abort', { cwd: pkgDir });
+                                await run('git merge --abort', { cwd: pkgDir, suppressErrorLogging: true });
                             } catch {
                                 // Ignore - there might not be a merge to abort if it was a fast-forward
                             }
                         } catch (mergeError: any) {
                             // Abort any partial merge
                             try {
-                                await run('git merge --abort', { cwd: pkgDir });
+                                await run('git merge --abort', { cwd: pkgDir, suppressErrorLogging: true });
                             } catch {
                                 // Ignore abort errors
                             }
@@ -236,7 +236,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 // Check if base version exists on npm
                 const baseVersion = version.split('-')[0];
                 try {
-                    const { stdout } = await run(`npm view ${pkgName}@${baseVersion} version`, { cwd: pkgDir });
+                    const { stdout } = await run(`npm view ${pkgName}@${baseVersion} version`, { cwd: pkgDir, suppressErrorLogging: true });
                     if (stdout.trim() === baseVersion) {
                         checks.devVersion.passed = false;
                         checks.devVersion.issues.push(
