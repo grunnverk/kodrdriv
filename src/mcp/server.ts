@@ -68,7 +68,7 @@ async function main() {
         const timestamp = new Date().toISOString();
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
-        
+
         // Log to stderr for MCP debugging
         // eslint-disable-next-line no-console
         console.error(`[${timestamp}] KodrDriv MCP Error (${context}):`, errorMessage);
@@ -266,10 +266,10 @@ async function main() {
                 } catch (error) {
                     // Catch any unhandled errors in tool execution
                     logError(`tool:${name}`, error);
-                    
+
                     const errorMessage = error instanceof Error ? error.message : String(error);
                     const errorStack = error instanceof Error ? error.stack : undefined;
-                    
+
                     return {
                         content: [{
                             type: 'text' as const,

@@ -15,7 +15,7 @@ const logError = (context: string, error: unknown) => {
     const timestamp = new Date().toISOString();
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    
+
     // Log to stderr for MCP debugging
     console.error(`[${timestamp}] KodrDriv MCP Error (${context}):`, errorMessage);
     if (errorStack) {
@@ -35,10 +35,10 @@ async (args, { sendNotification, _meta }) => {
     } catch (error) {
         // Catch any unhandled errors in tool execution
         logError(`tool:${name}`, error);
-        
+
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
-        
+
         return {
             content: [{
                 type: 'text' as const,
