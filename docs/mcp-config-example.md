@@ -196,7 +196,7 @@ Configure for multi-package workflows:
     "link": {
       "scopeRoots": {
         "@grunnverk": "../../grunnverk",
-        "@riotprompt": "../../kjerneverk"
+        "@kjerneverk": "../../kjerneverk"
       }
     },
     "publish": {

@@ -65,7 +65,7 @@ async function buildMCPServer() {
                 '@modelcontextprotocol/*',
                 '@grunnverk/*',
                 '@utilarium/*',
-                '@riotprompt/*',
+                '@kjerneverk/*',
                 // Winston and its dependencies use dynamic requires that don't work when bundled
                 // These must be external dependencies, not bundled
                 'winston',

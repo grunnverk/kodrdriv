@@ -425,7 +425,7 @@ kodrdriv tree --cmd "npm test"
 kodrdriv tree updates --report
 
 # 7. Update external dependencies
-kodrdriv tree updates @riotprompt
+kodrdriv tree updates @kjerneverk
 
 # 8. Commit changes across packages that need it
 kodrdriv tree commit

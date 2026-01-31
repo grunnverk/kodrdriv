@@ -38,8 +38,8 @@ Update packages matching a specific npm scope using [npm-check-updates](https://
 # Update @grunnverk packages in current project
 kodrdriv updates @grunnverk
 
-# Update @riotprompt packages
-kodrdriv updates @riotprompt
+# Update @kjerneverk packages
+kodrdriv updates @kjerneverk
 
 # Update across all packages in monorepo
 kodrdriv tree updates @grunnverk
@@ -61,7 +61,7 @@ Configure default scopes in `.kodrdriv/config.yaml` to run updates without speci
 updates:
   scopes:
     - "@grunnverk"
-    - "@riotprompt"
+    - "@kjerneverk"
     - "@utilarium"
 ```
 
@@ -76,7 +76,7 @@ Alternatively, use the publish configuration for consistency:
 publish:
   scopedDependencyUpdates:
     - "@grunnverk"
-    - "@riotprompt"
+    - "@kjerneverk"
 ```
 
 ## Inter-Project Updates
@@ -127,7 +127,7 @@ Lists packages with inconsistent versions across your monorepo:
 │  │
 │  ├─ zod
 │  │     ^3.24.2 (used by: @grunnverk/core)
-│  │     ^4.0.2 (used by: @riotprompt/riotprompt)
+│  │     ^4.0.2 (used by: @kjerneverk/riotprompt)
 ```
 
 #### Shared Dependencies
@@ -239,14 +239,14 @@ kodrdriv updates --analyze --strategy compatible
 │
 │  Analyzed 12 packages with 3 version conflicts. The primary
 │  conflict is openai where v4 and v6 are both in use. Upgrading
-│  to v6 is recommended as it's required by @riotprompt/riotprompt.
+│  to v6 is recommended as it's required by @kjerneverk/riotprompt.
 
 ┌─ 💡 RECOMMENDATIONS
 │
 │  ├─ 🔴 openai
 │  │     Current: ^4.87.3, ^6.15.0
 │  │     Recommended: ^6.15.0
-│  │     Reason: Required by @riotprompt/riotprompt peer dependency
+│  │     Reason: Required by @kjerneverk/riotprompt peer dependency
 │  │     Affects: @grunnverk/core, @grunnverk/commands-git
 │  │
 │  ├─ 🟡 zod
@@ -293,7 +293,7 @@ kodrdriv updates @grunnverk
 
 # Update multiple scopes (run multiple times or configure defaults)
 kodrdriv updates @grunnverk
-kodrdriv updates @riotprompt
+kodrdriv updates @kjerneverk
 ```
 
 ### Tree Mode Updates
@@ -354,7 +354,7 @@ kodrdriv tree updates --inter-project @grunnverk
 updates:
   scopes:
     - "@grunnverk"
-    - "@riotprompt"
+    - "@kjerneverk"
     - "@utilarium"
 ```
 
@@ -376,7 +376,7 @@ updates:
 publish:
   scopedDependencyUpdates:
     - "@grunnverk"
-    - "@riotprompt"
+    - "@kjerneverk"
 ```
 
 The updates command will use `publish.scopedDependencyUpdates` as a fallback when `updates.scopes` is not configured.
@@ -396,7 +396,7 @@ kodrdriv updates --analyze
 ```bash
 # Ensure all dependencies are current
 kodrdriv tree updates @grunnverk
-kodrdriv tree updates @riotprompt
+kodrdriv tree updates @kjerneverk
 
 # Sync inter-project versions
 kodrdriv tree updates --inter-project @grunnverk
@@ -426,7 +426,7 @@ The updates command integrates with the publish workflow:
 kodrdriv tree updates --report
 
 # 2. Update external dependencies
-kodrdriv tree updates @riotprompt
+kodrdriv tree updates @kjerneverk
 
 # 3. Sync internal dependencies
 kodrdriv tree updates --inter-project @grunnverk

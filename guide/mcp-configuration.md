@@ -324,7 +324,7 @@ Kodrdriv's configuration schema is defined using Zod and includes the following 
   "link": {
     "scopeRoots": {
       "@grunnverk": "../../grunnverk",
-      "@riotprompt": "../../kjerneverk",
+      "@kjerneverk": "../../kjerneverk",
       "@utilarium": "../../utilarium"
     },
     "dryRun": false,
@@ -464,7 +464,7 @@ Here's a complete example of a Cursor MCP configuration for Kodrdriv:
         "link": {
           "scopeRoots": {
             "@grunnverk": "../../grunnverk",
-            "@riotprompt": "../../kjerneverk",
+            "@kjerneverk": "../../kjerneverk",
             "@utilarium": "../../utilarium"
           }
         },
