@@ -1,6 +1,6 @@
 {
   "name": "@grunnverk/kodrdriv",
-  "version": "1.5.9",
+  "version": "",
   "description": "Create Intelligent Release Notes or Change Logs from Git",
   "main": "dist/main.js",
   "type": "module",
