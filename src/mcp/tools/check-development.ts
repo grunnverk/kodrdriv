@@ -29,18 +29,13 @@ export const checkDevelopmentTool: McpTool = {
     name: 'kodrdriv_check_development',
     description:
         'Check development readiness for a package or tree. ' +
-        'Verifies branch status, remote sync, dev version, and link status. ' +
-        'Optionally validates release workflow readiness by checking for merge conflicts and open PRs.',
+        'Verifies branch status, remote sync, dev version, link status, merge conflicts with target branch, and open PRs.',
     inputSchema: {
         type: 'object',
         properties: {
             directory: {
                 type: 'string',
                 description: 'Package or tree directory (defaults to current directory)',
-            },
-            validateRelease: {
-                type: 'boolean',
-                description: 'Enable full release workflow validation (merge conflicts, open PRs). Defaults to false for quick checks.',
             },
         },
     },
@@ -53,14 +48,11 @@ export const checkDevelopmentTool: McpTool = {
  * - Remote sync status
  * - Dev version status
  * - Link status for local dependencies
- *
- * When validateRelease is true, also checks:
  * - Merge conflicts with target branch (main)
  * - Open PRs from working branch (warns about potential conflicts)
  */
 export async function executeCheckDevelopment(args: any, _context: ToolExecutionContext): Promise<ToolResult> {
     const directory = args.directory || process.cwd();
-    const validateRelease = args.validateRelease ?? false;
     const { getLogs, remove } = installLogCapture();
 
     try {
@@ -90,7 +82,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
         const packageJsonFiles = await scanForPackageJsonFiles(directory, excludedPatterns);
         const isTree = packageJsonFiles.length > 1;
 
-        logger.info(`Checking development readiness for ${isTree ? 'tree' : 'single package'} in ${directory}${validateRelease ? ' (full release validation)' : ' (quick check)'}`);
+        logger.info(`Checking development readiness for ${isTree ? 'tree' : 'single package'} in ${directory}`);
 
         const checks = {
             branch: { passed: true, issues: [] as string[] },
@@ -158,8 +150,8 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 checks.remoteSync.issues.push(`${pkgName}: Could not check remote sync - ${error.message || error}`);
             }
 
-            // 3. Check for merge conflicts with target branch (main) - only if validateRelease is true
-            if (validateRelease) {
+            // 3. Check for merge conflicts with target branch (main) - ALWAYS check this
+            {
                 try {
                     const gitStatus = await getGitStatusSummary(pkgDir);
                     const currentBranch = gitStatus.branch;
@@ -204,8 +196,11 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                                 // Ignore abort errors
                             }
 
-                            // If merge failed, there are likely conflicts
-                            if (mergeError.message?.includes('CONFLICT') || mergeError.stderr?.includes('CONFLICT')) {
+                            // If merge failed, check if it's due to conflicts
+                            // Git outputs conflict info to stdout, not stderr
+                            if (mergeError.message?.includes('CONFLICT') ||
+                                mergeError.stderr?.includes('CONFLICT') ||
+                                mergeError.stdout?.includes('CONFLICT')) {
                                 checks.mergeConflicts.passed = false;
                                 checks.mergeConflicts.issues.push(
                                     `${pkgName}: Merge conflicts detected with ${targetBranch} branch`
@@ -273,8 +268,8 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 }
             }
 
-            // 6. Check for open PRs from working branch - only if validateRelease is true
-            if (validateRelease && pkgJson.repository?.url) {
+            // 6. Check for open PRs from working branch - ALWAYS check this
+            if (pkgJson.repository?.url) {
                 try {
                     const gitStatus = await getGitStatusSummary(pkgDir);
                     const currentBranch = gitStatus.branch;
@@ -328,17 +323,17 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
         }
 
         // Build summary - linkStatus is not included in allPassed (it's a recommendation, not a requirement)
-        // mergeConflicts and openPRs are only checked when validateRelease is true
+        // All other checks are always performed
         const allPassed = checks.branch.passed &&
                          checks.remoteSync.passed &&
                          checks.devVersion.passed &&
-                         (validateRelease ? checks.mergeConflicts.passed && checks.openPRs.passed : true);
+                         checks.mergeConflicts.passed &&
+                         checks.openPRs.passed;
 
         const summary = {
             ready: allPassed,
             isTree,
             packagesChecked: packagesToCheck.length,
-            releaseValidation: validateRelease,
             checks: {
                 branch: {
                     passed: checks.branch.passed,
@@ -352,6 +347,14 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     passed: checks.mergeConflicts.passed,
                     issues: checks.mergeConflicts.issues,
                     warnings: checks.mergeConflicts.warnings,
+                    resolutionSteps: checks.mergeConflicts.issues.length > 0 ? [
+                        'Fetch latest main branch: git fetch origin main',
+                        'Merge main into your working branch: git merge origin/main',
+                        'Resolve conflicts in your editor (look for <<<<<<< markers)',
+                        'Stage resolved files: git add <resolved-files>',
+                        'Complete the merge: git commit',
+                        'Run check-development again to verify conflicts are resolved',
+                    ] : undefined,
                 },
                 devVersion: {
                     passed: checks.devVersion.passed,
@@ -362,21 +365,19 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                     issues: checks.linkStatus.issues,
                     warnings: checks.linkStatus.warnings,
                 },
-                ...(validateRelease ? {
-                    openPRs: {
-                        passed: checks.openPRs.passed,
-                        issues: checks.openPRs.issues,
-                        warnings: checks.openPRs.warnings,
-                    },
-                } : {}),
+                openPRs: {
+                    passed: checks.openPRs.passed,
+                    issues: checks.openPRs.issues,
+                    warnings: checks.openPRs.warnings,
+                },
             },
         };
 
         // Log results
         if (allPassed) {
-            logger.info(`✅ All required ${validateRelease ? 'development and release' : 'development'} readiness checks passed`);
+            logger.info(`✅ All required development readiness checks passed`);
         } else {
-            logger.warn(`⚠️  Some required ${validateRelease ? 'development or release' : 'development'} readiness checks failed`);
+            logger.warn(`⚠️  Some required development readiness checks failed`);
             if (!checks.branch.passed) {
                 logger.warn(`Branch issues: ${checks.branch.issues.join('; ')}`);
             }
@@ -385,11 +386,12 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
             }
             if (!checks.mergeConflicts.passed) {
                 logger.warn(`Merge conflict issues: ${checks.mergeConflicts.issues.join('; ')}`);
+                logger.info(`To resolve: 1) git fetch origin main, 2) git merge origin/main, 3) resolve conflicts, 4) git commit`);
             }
             if (!checks.devVersion.passed) {
                 logger.warn(`Dev version issues: ${checks.devVersion.issues.join('; ')}`);
             }
-            if (validateRelease && !checks.openPRs.passed) {
+            if (!checks.openPRs.passed) {
                 logger.warn(`Open PR issues: ${checks.openPRs.issues.join('; ')}`);
             }
         }
@@ -401,7 +403,7 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
         if (checks.mergeConflicts.warnings.length > 0) {
             logger.warn(`Merge conflict warnings: ${checks.mergeConflicts.warnings.join('; ')}`);
         }
-        if (validateRelease && checks.openPRs.warnings.length > 0) {
+        if (checks.openPRs.warnings.length > 0) {
             logger.warn(`Open PR warnings: ${checks.openPRs.warnings.join('; ')}`);
         }
 
