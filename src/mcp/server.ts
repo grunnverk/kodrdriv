@@ -63,6 +63,21 @@ async function main() {
     // createTransports from adding console transports. But we also remove any
     // existing console transports that might have been added before the env var was set.
 
+    // Set up error logging for MCP server
+    const logError = (context: string, error: unknown) => {
+        const timestamp = new Date().toISOString();
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        
+        // Log to stderr for MCP debugging
+        // eslint-disable-next-line no-console
+        console.error(`[${timestamp}] KodrDriv MCP Error (${context}):`, errorMessage);
+        if (errorStack) {
+            // eslint-disable-next-line no-console
+            console.error('Stack:', errorStack);
+        }
+    };
+
     // Helper to remove console transports from a winston logger
     const removeConsoleTransports = (loggerInstance: winston.Logger) => {
         const transports = [...((loggerInstance as any).transports || [])];
@@ -125,124 +140,140 @@ async function main() {
             description,
             inputSchema,
             async (args, { sendNotification, _meta }) => {
-                const context = {
-                    workingDirectory: process.cwd(),
-                    config: undefined,
-                    logger: undefined,
-                    sendNotification: async (notification: {
-                        method: string;
-                        params: {
-                            progressToken?: string | number;
-                            progress: number;
-                            total?: number;
-                            message?: string;
-                        };
-                    }) => {
-                        // Use sendNotification directly with proper typing
-                        if (notification.method === 'notifications/progress' && _meta?.progressToken) {
-                            // Build params object, removing undefined values to prevent JSON serialization issues
-                            const params: Record<string, any> = {
-                                progressToken: _meta.progressToken,
-                                progress: notification.params.progress,
+                try {
+                    const context = {
+                        workingDirectory: process.cwd(),
+                        config: undefined,
+                        logger: undefined,
+                        sendNotification: async (notification: {
+                            method: string;
+                            params: {
+                                progressToken?: string | number;
+                                progress: number;
+                                total?: number;
+                                message?: string;
                             };
-                            if (notification.params.total !== undefined) {
-                                params.total = notification.params.total;
+                        }) => {
+                            // Use sendNotification directly with proper typing
+                            if (notification.method === 'notifications/progress' && _meta?.progressToken) {
+                                // Build params object, removing undefined values to prevent JSON serialization issues
+                                const params: Record<string, any> = {
+                                    progressToken: _meta.progressToken,
+                                    progress: notification.params.progress,
+                                };
+                                if (notification.params.total !== undefined) {
+                                    params.total = notification.params.total;
+                                }
+                                if (notification.params.message !== undefined) {
+                                    params.message = notification.params.message;
+                                }
+                                await sendNotification({
+                                    method: 'notifications/progress',
+                                    params: removeUndefinedValues(params) as any,
+                                });
                             }
-                            if (notification.params.message !== undefined) {
-                                params.message = notification.params.message;
-                            }
-                            await sendNotification({
-                                method: 'notifications/progress',
-                                params: removeUndefinedValues(params) as any,
+                        },
+                        progressToken: _meta?.progressToken,
+                    };
+
+                    const result = await executeTool(name, args, context);
+
+                    if (result.success) {
+                        // Build response with logs if available
+                        const content: Array<{ type: 'text'; text: string }> = [];
+
+                        // Add logs first if they exist
+                        if (result.logs && result.logs.length > 0) {
+                            content.push({
+                                type: 'text' as const,
+                                text: '=== Command Output ===\n' + result.logs.join('\n') + '\n\n=== Result ===',
                             });
                         }
-                    },
-                    progressToken: _meta?.progressToken,
-                };
 
-                const result = await executeTool(name, args, context);
-
-                if (result.success) {
-                    // Build response with logs if available
-                    const content: Array<{ type: 'text'; text: string }> = [];
-
-                    // Add logs first if they exist
-                    if (result.logs && result.logs.length > 0) {
+                        // Add the result data
+                        // Remove undefined values to prevent JSON serialization issues
+                        const cleanData = removeUndefinedValues(result.data);
                         content.push({
                             type: 'text' as const,
-                            text: '=== Command Output ===\n' + result.logs.join('\n') + '\n\n=== Result ===',
+                            text: JSON.stringify(cleanData, null, 2),
                         });
-                    }
 
-                    // Add the result data
-                    // Remove undefined values to prevent JSON serialization issues
-                    const cleanData = removeUndefinedValues(result.data);
-                    content.push({
-                        type: 'text' as const,
-                        text: JSON.stringify(cleanData, null, 2),
-                    });
-
-                    return { content };
-                } else {
-                    // Build error response with logs if available
-                    const errorParts: string[] = [];
-
-                    if (result.logs && result.logs.length > 0) {
-                        errorParts.push('=== Command Output ===');
-                        errorParts.push(result.logs.join('\n'));
-                        errorParts.push('\n=== Error ===');
+                        return { content };
                     } else {
-                        // If no logs were captured, indicate this clearly
-                        errorParts.push('=== Command Output ===');
-                        errorParts.push('ℹ️ Command started but no logs were captured before failure');
-                        errorParts.push('\n=== Error ===');
-                    }
+                        // Build error response with logs if available
+                        const errorParts: string[] = [];
 
-                    errorParts.push(result.error || 'Unknown error');
+                        if (result.logs && result.logs.length > 0) {
+                            errorParts.push('=== Command Output ===');
+                            errorParts.push(result.logs.join('\n'));
+                            errorParts.push('\n=== Error ===');
+                        } else {
+                            // If no logs were captured, indicate this clearly
+                            errorParts.push('=== Command Output ===');
+                            errorParts.push('ℹ️ Command started but no logs were captured before failure');
+                            errorParts.push('\n=== Error ===');
+                        }
 
-                    // Include context information if available (helps identify which package/phase failed)
-                    if (result.context && typeof result.context === 'object') {
-                        errorParts.push('\n=== Context ===');
-                        for (const [key, value] of Object.entries(result.context)) {
-                            if (value !== undefined && value !== null) {
-                                errorParts.push(`${key}: ${String(value)}`);
+                        errorParts.push(result.error || 'Unknown error');
+
+                        // Include context information if available (helps identify which package/phase failed)
+                        if (result.context && typeof result.context === 'object') {
+                            errorParts.push('\n=== Context ===');
+                            for (const [key, value] of Object.entries(result.context)) {
+                                if (value !== undefined && value !== null) {
+                                    errorParts.push(`${key}: ${String(value)}`);
+                                }
                             }
                         }
-                    }
 
-                    // Include stderr/stdout details if available (critical for debugging CLI errors)
-                    if (result.details) {
-                        if (result.details.stderr && result.details.stderr.trim()) {
-                            errorParts.push('\n=== STDERR ===');
-                            errorParts.push(result.details.stderr);
+                        // Include stderr/stdout details if available (critical for debugging CLI errors)
+                        if (result.details) {
+                            if (result.details.stderr && result.details.stderr.trim()) {
+                                errorParts.push('\n=== STDERR ===');
+                                errorParts.push(result.details.stderr);
+                            }
+                            if (result.details.stdout && result.details.stdout.trim()) {
+                                errorParts.push('\n=== STDOUT ===');
+                                errorParts.push(result.details.stdout);
+                            }
+                            if (result.details.exitCode !== undefined) {
+                                errorParts.push(`\n=== Exit Code ===`);
+                                errorParts.push(`${result.details.exitCode}`);
+                            }
+                            if (result.details.phase) {
+                                errorParts.push(`\n=== Phase ===`);
+                                errorParts.push(result.details.phase);
+                            }
+                            if (result.details.files && result.details.files.length > 0) {
+                                errorParts.push(`\n=== Files ===`);
+                                errorParts.push(result.details.files.join('\n'));
+                            }
                         }
-                        if (result.details.stdout && result.details.stdout.trim()) {
-                            errorParts.push('\n=== STDOUT ===');
-                            errorParts.push(result.details.stdout);
-                        }
-                        if (result.details.exitCode !== undefined) {
-                            errorParts.push(`\n=== Exit Code ===`);
-                            errorParts.push(`${result.details.exitCode}`);
-                        }
-                        if (result.details.phase) {
-                            errorParts.push(`\n=== Phase ===`);
-                            errorParts.push(result.details.phase);
-                        }
-                        if (result.details.files && result.details.files.length > 0) {
-                            errorParts.push(`\n=== Files ===`);
-                            errorParts.push(result.details.files.join('\n'));
-                        }
-                    }
 
-                    if (result.recovery && result.recovery.length > 0) {
-                        errorParts.push('\n=== Recovery Steps ===');
-                        errorParts.push(...result.recovery.map((step, i) => `${i + 1}. ${step}`));
-                    }
+                        if (result.recovery && result.recovery.length > 0) {
+                            errorParts.push('\n=== Recovery Steps ===');
+                            errorParts.push(...result.recovery.map((step, i) => `${i + 1}. ${step}`));
+                        }
 
+                        return {
+                            content: [{
+                                type: 'text' as const,
+                                text: errorParts.join('\n'),
+                            }],
+                            isError: true,
+                        };
+                    }
+                } catch (error) {
+                    // Catch any unhandled errors in tool execution
+                    logError(`tool:${name}`, error);
+                    
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    const errorStack = error instanceof Error ? error.stack : undefined;
+                    
                     return {
                         content: [{
                             type: 'text' as const,
-                            text: errorParts.join('\n'),
+                            text: `=== Unhandled Error in ${name} ===\n\n${errorMessage}\n\n${errorStack ? `Stack:\n${errorStack}` : ''}`,
                         }],
                         isError: true,
                     };
@@ -502,9 +533,30 @@ async function main() {
     // The server is ready when connect() resolves
 }
 
-// Handle errors silently in MCP mode - errors should be sent via MCP protocol, not stderr
-main().catch((_error) => {
-    // In MCP mode, we can't write to stderr, so we just exit with error code
-    // The error will be visible in the MCP client logs if the server fails to start
+// Set up global error handlers for better resilience
+process.on('uncaughtException', (error) => {
+    // eslint-disable-next-line no-console
+    console.error('[KodrDriv MCP] Uncaught Exception:', error.message);
+    // eslint-disable-next-line no-console
+    console.error('Stack:', error.stack);
+    // Don't exit - try to keep server running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    // eslint-disable-next-line no-console
+    console.error('[KodrDriv MCP] Unhandled Rejection at:', promise);
+    // eslint-disable-next-line no-console
+    console.error('Reason:', reason);
+    // Don't exit - try to keep server running
+});
+
+// Handle errors with better logging
+main().catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error('[KodrDriv MCP] Fatal error during startup:', error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && error.stack) {
+        // eslint-disable-next-line no-console
+        console.error('Stack:', error.stack);
+    }
     process.exit(1);
 });
