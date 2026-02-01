@@ -852,8 +852,6 @@ export async function getCliConfig(
         .option('--update-deps <scope>', 'update inter-project dependencies before publish (e.g., --update-deps @fjell)')
         .option('--self-reflection', 'generate self-reflection report with tool effectiveness analysis')
         .option('--max-agentic-iterations <maxAgenticIterations>', 'maximum iterations for analysis (default: 30)', parseInt)
-        .option('--agentic-publish', 'use AI agent to automatically diagnose and fix publish issues')
-        .option('--agentic-publish-max-iterations <agenticPublishMaxIterations>', 'maximum iterations for agentic publish (default: 10)', parseInt)
         .description('Publish a release');
     addSharedOptions(publishCommand);
 
@@ -1088,7 +1086,6 @@ Examples:
     const checkDevelopmentCommand = program
         .command('check-development')
         .option('--directory <directory>', 'directory to check (defaults to current directory)')
-        .option('--validate-release-workflow', 'validate release workflow (build, test, publish dry-run) - may take longer')
         .description('Check development readiness (branch status, remote sync, dev versions, link status, open PRs, merge conflicts)');
     addSharedOptions(checkDevelopmentCommand);
 
