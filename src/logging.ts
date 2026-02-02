@@ -178,7 +178,15 @@ const logger = winston.createLogger({
     transports: createTransports('info'),
 });
 
+// Track if logger is closing or closed to prevent write-after-end errors
+let isLoggerClosing = false;
+let isLoggerClosed = false;
+
 export const setLogLevel = (level: string) => {
+    // Don't reconfigure if logger is closing or closed
+    if (isLoggerClosing || isLoggerClosed) {
+        return;
+    }
     // Reconfigure the existing logger instead of creating a new one
     logger.configure({
         level,
@@ -215,14 +223,22 @@ export const getDryRunLogger = (isDryRun: boolean) => {
  * and file handles are properly closed.
  */
 export const closeLogger = async (): Promise<void> => {
-    return new Promise((resolve) => {
-        // Close all transports
-        logger.close();
+    // Prevent multiple close attempts
+    if (isLoggerClosing || isLoggerClosed) {
+        return;
+    }
 
-        // Give transports a moment to finish closing
-        // Winston's close() is synchronous but file handles may need a tick to release
-        setImmediate(() => {
-            resolve();
-        });
-    });
+    isLoggerClosing = true;
+
+    try {
+        // In winston 3.x, close() returns a Promise that resolves when all transports are closed
+        // and all pending writes are completed
+        await logger.close();
+        isLoggerClosed = true;
+    } catch (error: any) {
+        // If close fails (e.g., write-after-end), mark as closed anyway to prevent further attempts
+        isLoggerClosed = true;
+        // Silently ignore close errors - the logger is effectively closed
+        // This prevents write-after-end errors from propagating
+    }
 };
