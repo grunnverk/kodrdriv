@@ -35,6 +35,7 @@ export const DEFAULT_MODEL_STRONG = 'gpt-4o';
 export const DEFAULT_OPENAI_REASONING = 'low';
 export const DEFAULT_OPENAI_MAX_OUTPUT_TOKENS = 10000;
 export const DEFAULT_OUTPUT_DIRECTORY = 'output/kodrdriv';
+export const DEFAULT_RUNTIME_LOG_DIRECTORY = path.join(os.homedir(), '.kodrdriv', 'log');
 
 // Buffer size for git commands that may produce large output (like git log)
 export const DEFAULT_GIT_COMMAND_MAX_BUFFER = 50 * 1024 * 1024; // 50MB

@@ -2,10 +2,26 @@ import winston from 'winston';
 // eslint-disable-next-line no-restricted-imports
 import * as fs from 'fs';
 import path from 'path';
-import { DATE_FORMAT_YEAR_MONTH_DAY_HOURS_MINUTES_SECONDS_MILLISECONDS, PROGRAM_NAME, DEFAULT_OUTPUT_DIRECTORY } from './constants';
+import {
+    DATE_FORMAT_YEAR_MONTH_DAY_HOURS_MINUTES_SECONDS_MILLISECONDS,
+    PROGRAM_NAME,
+    DEFAULT_RUNTIME_LOG_DIRECTORY
+} from './constants';
 
 export interface LogContext {
     [key: string]: any;
+}
+
+// Backend-agnostic logger contract used by command-level code.
+// Keeping this contract stable allows winston -> @fjell/logging migration
+// without forcing downstream behavior changes.
+export interface KodrdrivLogger {
+    info(message: string, ...args: any[]): void;
+    warn(message: string, ...args: any[]): void;
+    error(message: string, ...args: any[]): void;
+    debug(message: string, ...args: any[]): void;
+    verbose(message: string, ...args: any[]): void;
+    silly(message: string, ...args: any[]): void;
 }
 
 // Track if debug directory has been ensured for this session
@@ -14,7 +30,7 @@ let debugDirectoryEnsured = false;
 const ensureDebugDirectory = () => {
     if (debugDirectoryEnsured) return;
 
-    const debugDir = path.join(DEFAULT_OUTPUT_DIRECTORY, 'debug');
+    const debugDir = path.join(DEFAULT_RUNTIME_LOG_DIRECTORY, 'debug');
 
     try {
         fs.mkdirSync(debugDir, { recursive: true });
@@ -98,7 +114,7 @@ const createTransports = (level: string) => {
     if (level === 'debug' || level === 'silly') {
         ensureDebugDirectory();
 
-        const debugLogPath = path.join(DEFAULT_OUTPUT_DIRECTORY, 'debug', generateDebugLogFilename());
+        const debugLogPath = path.join(DEFAULT_RUNTIME_LOG_DIRECTORY, 'debug', generateDebugLogFilename());
 
         transports.push(
             new winston.transports.File({

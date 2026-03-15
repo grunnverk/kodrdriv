@@ -30,6 +30,8 @@
 | Run tests | [`testing.md`](./testing.md) |
 | Use multi-package features | [`tree-operations.md`](./tree-operations.md) |
 | Work with monorepos | [`monorepo.md`](./monorepo.md) |
+| Understand logging backend strategy | [`logging-backend-decision.md`](./logging-backend-decision.md) |
+| Continue failed logging runs | [`logging-runbook.md`](./logging-runbook.md) |
 
 ### By Experience Level
 
@@ -86,6 +88,12 @@ Building and extending kodrdriv. Setup, testing, adding features.
 
 ### [`testing.md`](./testing.md)
 Test suite guide. Running tests, writing tests, coverage.
+
+### [`logging-backend-decision.md`](./logging-backend-decision.md)
+Backend strategy for logging. Current `winston` posture, `@fjell/logging` migration path, and guardrails.
+
+### [`logging-runbook.md`](./logging-runbook.md)
+Runbook for MCP continuation after failures. Handoff envelope parsing, log paths, and retry/escalation flow.
 
 ### [`tree-operations.md`](./tree-operations.md)
 Multi-package automation. Sequential/parallel execution, recovery, monitoring.
