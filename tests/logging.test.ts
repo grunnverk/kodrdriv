@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
 import { setLogLevel, getLogger, getDryRunLogger, LogContext } from '../src/logging.js';
 import winston from 'winston';
-import { PROGRAM_NAME, DEFAULT_OUTPUT_DIRECTORY } from '../src/constants.js';
+import { PROGRAM_NAME, DEFAULT_RUNTIME_LOG_DIRECTORY } from '../src/constants.js';
 import path from 'path';
 
 describe('Logging module', () => {
@@ -358,6 +358,30 @@ describe('Logging module', () => {
                 expect(config.transports[0]).toBeInstanceOf(winston.transports.Console);
                 expect(config.transports[1]).toBeInstanceOf(winston.transports.File);
             }
+        });
+
+        test('debug file transport defaults to runtime log directory', () => {
+            const logger = getLogger();
+            const configureSpy = vi.spyOn(logger, 'configure');
+
+            setLogLevel('debug');
+
+            const config = configureSpy.mock.calls[0]?.[0];
+            const transports = config?.transports;
+            if (!Array.isArray(transports)) {
+                throw new Error('Expected transports to be an array');
+            }
+
+            const fileTransport = transports.find((t: unknown) => t instanceof winston.transports.File) as
+                | { filename?: string; dirname?: string }
+                | undefined;
+            expect(fileTransport).toBeDefined();
+
+            const expectedPrefix = path.join(DEFAULT_RUNTIME_LOG_DIRECTORY, 'debug');
+            const effectivePath = fileTransport?.dirname
+                ? path.join(fileTransport.dirname, fileTransport.filename || '')
+                : fileTransport?.filename;
+            expect(effectivePath).toContain(expectedPrefix);
         });
 
         test('verbose level only uses console transport', () => {

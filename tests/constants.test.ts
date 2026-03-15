@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import os from 'os';
 import {
     DATE_FORMAT_DAY,
     DATE_FORMAT_HOURS,
@@ -17,6 +18,7 @@ import {
     DEFAULT_BINARY_TO_TEXT_ENCODING,
     DEFAULT_CHARACTER_ENCODING,
     DEFAULT_DRY_RUN,
+    DEFAULT_RUNTIME_LOG_DIRECTORY,
     DEFAULT_VERBOSE,
     PROGRAM_NAME
 } from '../src/constants.js';
@@ -48,5 +50,9 @@ describe('constants', () => {
     it('should have correct boolean defaults', () => {
         expect(DEFAULT_VERBOSE).toBe(false);
         expect(DEFAULT_DRY_RUN).toBe(false);
+    });
+
+    it('should default runtime logs to user-level .kodrdriv directory', () => {
+        expect(DEFAULT_RUNTIME_LOG_DIRECTORY).toBe(`${os.homedir()}/.kodrdriv/log`);
     });
 });
