@@ -133,6 +133,14 @@ export const ConfigSchema = z.object({
         agenticPublish: z.boolean().optional(),
         agenticPublishMaxIterations: z.number().optional(),
         skipLinkCleanup: z.boolean().optional(),
+        allowPrecheckBypass: z.boolean().optional(),
+        bypassReason: z.string().optional(),
+        compatibilityProfile: z.enum(['quick', 'strict']).optional(),
+        precheckEnforcement: z.enum(['warn', 'enforce']).optional(),
+        allowPrecheckBypassInCi: z.boolean().optional(),
+    }).optional(),
+    compatibility: z.object({
+        profile: z.enum(['quick', 'strict']).optional(),
     }).optional(),
     branches: z.record(z.string(), z.object({
         targetBranch: z.string().optional(),
@@ -406,6 +414,33 @@ export type PublishConfig = {
     updateDeps?: string; // scope for inter-project dependency updates (e.g., '@fjell')
     agenticPublish?: boolean; // use AI agent to automatically diagnose and fix publish issues
     agenticPublishMaxIterations?: number; // maximum iterations for agentic publish (default: 10)
+    allowPrecheckBypass?: boolean;
+    bypassReason?: string;
+    compatibilityProfile?: 'quick' | 'strict';
+    precheckEnforcement?: 'warn' | 'enforce';
+    allowPrecheckBypassInCi?: boolean;
+}
+
+export type CompatibilityProfile = 'quick' | 'strict';
+
+export type CompatibilityGatePolicy = {
+    allowBypassLocal: boolean;
+    allowBypassCi: boolean;
+    requireBypassReason: boolean;
+}
+
+export type CompatibilityGateIssue = {
+    code: string;
+    message: string;
+    remediation?: string[];
+}
+
+export type CompatibilityGateResult = {
+    ready: boolean;
+    profile: CompatibilityProfile;
+    classification: 'ok' | 'blocked' | 'warning' | 'bypassed';
+    blockers: CompatibilityGateIssue[];
+    warnings: CompatibilityGateIssue[];
 }
 
 export type VersionTargetConfig = {

@@ -25,7 +25,7 @@ import * as CommandsGit from '@grunnverk/commands-git';
 import * as CommandsTree from '@grunnverk/commands-tree';
 import * as CommandsPublish from '@grunnverk/commands-publish';
 import * as CommandsAudio from '@grunnverk/commands-audio';
-import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_CONFIG, COMMAND_CHECK_DEVELOPMENT, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION, PROGRAM_NAME } from './constants';
+import { COMMAND_AUDIO_COMMIT, COMMAND_AUDIO_REVIEW, COMMAND_CHECK_COMPATIBILITY, COMMAND_CHECK_CONFIG, COMMAND_CHECK_DEVELOPMENT, COMMAND_CLEAN, COMMAND_COMMIT, COMMAND_DEVELOPMENT, COMMAND_INIT_CONFIG, COMMAND_LINK, COMMAND_PRECOMMIT, COMMAND_PUBLISH, COMMAND_PULL, COMMAND_RELEASE, COMMAND_REVIEW, COMMAND_SELECT_AUDIO, COMMAND_TREE, COMMAND_UNLINK, COMMAND_UPDATES, COMMAND_VERSIONS, DEFAULT_CONFIG_DIR, VERSION, PROGRAM_NAME } from './constants';
 import { UserCancellationError } from '@grunnverk/shared';
 import { getLogger, setLogLevel } from './logging';
 import { Config, SecureConfig, ConfigSchema } from './types';
@@ -206,7 +206,7 @@ export async function runApplication(): Promise<void> {
         }
     }
     // If we have a specific command argument, use that
-    else if (command === 'commit' || command === 'audio-commit' || command === 'release' || command === 'publish' || command === 'tree' || command === 'link' || command === 'unlink' || command === 'audio-review' || command === 'clean' || command === 'pull' || command === 'precommit' || command === 'review' || command === 'select-audio' || command === 'development' || command === 'check-development' || command === 'versions' || command === 'updates') {
+    else if (command === 'commit' || command === 'audio-commit' || command === 'release' || command === 'publish' || command === 'tree' || command === 'link' || command === 'unlink' || command === 'audio-review' || command === 'clean' || command === 'pull' || command === 'precommit' || command === 'review' || command === 'select-audio' || command === 'development' || command === 'check-development' || command === 'check-compatibility' || command === 'versions' || command === 'updates') {
         commandName = command;
     }
 
@@ -262,6 +262,8 @@ export async function runApplication(): Promise<void> {
         } else if (commandName === COMMAND_DEVELOPMENT) {
             summary = await CommandsPublish.development(runConfig);
         } else if (commandName === COMMAND_CHECK_DEVELOPMENT) {
+            summary = await CommandsPublish.checkDevelopment(runConfig);
+        } else if (commandName === COMMAND_CHECK_COMPATIBILITY) {
             summary = await CommandsPublish.checkDevelopment(runConfig);
         }
         // Audio commands (from @grunnverk/commands-audio)

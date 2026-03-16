@@ -86,6 +86,7 @@ export const COMMAND_PULL = 'pull';
 export const COMMAND_PRECOMMIT = 'precommit';
 export const COMMAND_DEVELOPMENT = 'development';
 export const COMMAND_CHECK_DEVELOPMENT = 'check-development';
+export const COMMAND_CHECK_COMPATIBILITY = 'check-compatibility';
 export const COMMAND_VERSIONS = 'versions';
 export const COMMAND_UPDATES = 'updates';
 export const COMMAND_CHECK_CONFIG = 'check-config';
@@ -107,6 +108,7 @@ export const ALLOWED_COMMANDS = [
     COMMAND_PRECOMMIT,
     COMMAND_DEVELOPMENT,
     COMMAND_CHECK_DEVELOPMENT,
+    COMMAND_CHECK_COMPATIBILITY,
     COMMAND_VERSIONS,
     COMMAND_UPDATES
 ];
@@ -257,6 +259,14 @@ export const KODRDRIV_DEFAULTS = {
         noMilestones: false,
         checksTimeout: 3600000, // 1 hour default for PR checks
         releaseWorkflowsTimeout: 1800000, // 30 minutes default for release workflows
+        allowPrecheckBypass: false,
+        bypassReason: undefined,
+        compatibilityProfile: 'strict' as const,
+        precheckEnforcement: 'enforce' as const,
+        allowPrecheckBypassInCi: false,
+    },
+    compatibility: {
+        profile: 'quick' as const,
     },
     link: {
         scopeRoots: {},
