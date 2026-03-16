@@ -84,6 +84,7 @@ vi.mock('../src/constants', () => ({
     COMMAND_PRECOMMIT: 'precommit',
     COMMAND_DEVELOPMENT: 'development',
     COMMAND_CHECK_DEVELOPMENT: 'check-development',
+    COMMAND_CHECK_COMPATIBILITY: 'check-compatibility',
     COMMAND_VERSIONS: 'versions',
     COMMAND_UPDATES: 'updates',
     DEFAULT_CONFIG_DIR: '.kodrdriv',
