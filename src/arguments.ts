@@ -94,6 +94,12 @@ export const InputSchema = z.object({
     fix: z.boolean().optional(), // Attempt to auto-fix linting issues
     // Check-development command options
     validateReleaseWorkflow: z.boolean().optional(), // Validate release workflow (build, test, publish dry-run)
+    // Compatibility/precheck gate options
+    compatibilityProfile: z.enum(['quick', 'strict']).optional(),
+    allowPrecheckBypass: z.boolean().optional(),
+    bypassReason: z.string().optional(),
+    precheckEnforcement: z.enum(['warn', 'enforce']).optional(),
+    allowPrecheckBypassInCi: z.boolean().optional(),
 });
 
 export type Input = z.infer<typeof InputSchema>;
@@ -168,6 +174,11 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
         finalCliArgs.syncTarget !== undefined ||
         finalCliArgs.skipAlreadyPublished !== undefined ||
         finalCliArgs.forceRepublish !== undefined ||
+        finalCliArgs.allowPrecheckBypass !== undefined ||
+        finalCliArgs.bypassReason !== undefined ||
+        finalCliArgs.compatibilityProfile !== undefined ||
+        finalCliArgs.precheckEnforcement !== undefined ||
+        finalCliArgs.allowPrecheckBypassInCi !== undefined ||
         (commandName === 'publish' && (finalCliArgs.from !== undefined || finalCliArgs.noMilestones !== undefined || finalCliArgs.selfReflection !== undefined || finalCliArgs.maxAgenticIterations !== undefined))
     ) {
         transformedCliArgs.publish = {};
@@ -179,6 +190,11 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
         if (finalCliArgs.skipAlreadyPublished !== undefined) transformedCliArgs.publish.skipAlreadyPublished = finalCliArgs.skipAlreadyPublished;
         if (finalCliArgs.forceRepublish !== undefined) transformedCliArgs.publish.forceRepublish = finalCliArgs.forceRepublish;
         if (finalCliArgs.skipLinkCleanup !== undefined) transformedCliArgs.publish.skipLinkCleanup = finalCliArgs.skipLinkCleanup;
+        if (finalCliArgs.allowPrecheckBypass !== undefined) transformedCliArgs.publish.allowPrecheckBypass = finalCliArgs.allowPrecheckBypass;
+        if (finalCliArgs.bypassReason !== undefined) transformedCliArgs.publish.bypassReason = finalCliArgs.bypassReason;
+        if (finalCliArgs.compatibilityProfile !== undefined) transformedCliArgs.publish.compatibilityProfile = finalCliArgs.compatibilityProfile;
+        if (finalCliArgs.precheckEnforcement !== undefined) transformedCliArgs.publish.precheckEnforcement = finalCliArgs.precheckEnforcement;
+        if (finalCliArgs.allowPrecheckBypassInCi !== undefined) transformedCliArgs.publish.allowPrecheckBypassInCi = finalCliArgs.allowPrecheckBypassInCi;
         if ((commandName === 'publish' || finalCliArgs.mergeMethod !== undefined || finalCliArgs.targetVersion !== undefined || finalCliArgs.syncTarget !== undefined || finalCliArgs.interactive !== undefined || finalCliArgs.skipAlreadyPublished !== undefined || finalCliArgs.forceRepublish !== undefined) && finalCliArgs.noMilestones !== undefined) transformedCliArgs.publish.noMilestones = finalCliArgs.noMilestones;
         if (finalCliArgs.updateDeps !== undefined) transformedCliArgs.publish.updateDeps = finalCliArgs.updateDeps;
 
@@ -210,6 +226,14 @@ export const transformCliArgs = (finalCliArgs: Input, commandName?: string): Par
             ...(transformedCliArgs.release || {}),
             ...(finalCliArgs.noMilestones !== undefined ? { noMilestones: finalCliArgs.noMilestones } : {}),
         };
+    }
+
+    if (commandName === 'check-compatibility' &&
+        (finalCliArgs.compatibilityProfile !== undefined || finalCliArgs.validateReleaseWorkflow !== undefined)) {
+        transformedCliArgs.compatibility = {
+            ...(transformedCliArgs.compatibility || {}),
+            ...(finalCliArgs.compatibilityProfile !== undefined ? { profile: finalCliArgs.compatibilityProfile } : {}),
+        } as any;
     }
 
     // Nested mappings for 'link' and 'unlink' options
@@ -700,6 +724,7 @@ export async function getCliConfig(
         precommitCommand?: Command;
         developmentCommand?: Command;
         checkDevelopmentCommand?: Command;
+        checkCompatibilityCommand?: Command;
         versionsCommand?: Command;
         updatesCommand?: Command;
         selectAudioCommand?: Command;
@@ -847,6 +872,10 @@ export async function getCliConfig(
         .option('--sync-target', 'attempt to automatically sync target branch with remote before publishing')
         .option('--skip-already-published', 'skip packages that are already published at target version on npm')
         .option('--force-republish', 'delete existing tags and force republish even if tag exists')
+        .option('--allow-precheck-bypass', 'bypass compatibility precheck (emergency use only)')
+        .option('--bypass-reason <reason>', 'required reason when bypassing compatibility gate')
+        .option('--compatibility-profile <profile>', 'compatibility profile to evaluate (quick|strict)', 'strict')
+        .option('--precheck-enforcement <mode>', 'compatibility gate enforcement mode (warn|enforce)', 'enforce')
         .option('--no-milestones', 'disable GitHub milestone integration')
         .option('--from-main', 'force comparison against main branch instead of previous release tag')
         .option('--update-deps <scope>', 'update inter-project dependencies before publish (e.g., --update-deps @fjell)')
@@ -895,6 +924,10 @@ export async function getCliConfig(
         .option('--context-files [contextFiles...]', 'files containing additional context (forwarded to commit/release/publish)')
         .option('--self-reflection', 'generate self-reflection report (forwarded to commit/release/publish)')
         .option('--max-agentic-iterations <iterations>', 'maximum iterations for AI analysis (forwarded to commit/release/publish)', parseInt)
+        .option('--allow-precheck-bypass', 'bypass compatibility precheck for publish operations (emergency use only)')
+        .option('--bypass-reason <reason>', 'reason required when bypassing compatibility precheck')
+        .option('--compatibility-profile <profile>', 'compatibility profile (quick|strict)')
+        .option('--precheck-enforcement <mode>', 'compatibility gate enforcement mode (warn|enforce)')
         .description(`Analyze package dependencies in workspace and execute commands in dependency order.
 
 Built-in commands:
@@ -1086,8 +1119,16 @@ Examples:
     const checkDevelopmentCommand = program
         .command('check-development')
         .option('--directory <directory>', 'directory to check (defaults to current directory)')
+        .option('--compatibility-profile <profile>', 'compatibility profile (quick|strict)', 'quick')
         .description('Check development readiness (branch status, remote sync, dev versions, link status, open PRs, merge conflicts)');
     addSharedOptions(checkDevelopmentCommand);
+
+    const checkCompatibilityCommand = program
+        .command('check-compatibility')
+        .option('--directory <directory>', 'directory to check (defaults to current directory)')
+        .option('--compatibility-profile <profile>', 'compatibility profile (quick|strict)', 'quick')
+        .description('Check repository compatibility with Kodrdriv precheck gate');
+    addSharedOptions(checkCompatibilityCommand);
 
     const versionsCommand = program
         .command('versions <subcommand>')
@@ -1140,6 +1181,7 @@ Examples:
             precommitCommand,
             developmentCommand,
             checkDevelopmentCommand,
+            checkCompatibilityCommand,
             versionsCommand,
             updatesCommand,
             selectAudioCommand,
@@ -1322,6 +1364,9 @@ Examples:
         } else if (commandName === 'check-development' && chosen?.checkDevelopmentCommand?.opts) {
             const checkDevelopmentCmd = chosen.checkDevelopmentCommand;
             commandOptions = checkDevelopmentCmd.opts();
+        } else if (commandName === 'check-compatibility' && chosen?.checkCompatibilityCommand?.opts) {
+            const checkCompatibilityCmd = chosen.checkCompatibilityCommand;
+            commandOptions = checkCompatibilityCmd.opts();
         } else if (commandName === 'versions' && chosen?.versionsCommand?.opts) {
             const versionsCmd = chosen.versionsCommand as any;
             commandOptions = versionsCmd.opts();

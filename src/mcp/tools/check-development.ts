@@ -37,6 +37,11 @@ export const checkDevelopmentTool: McpTool = {
                 type: 'string',
                 description: 'Package or tree directory (defaults to current directory)',
             },
+            profile: {
+                type: 'string',
+                enum: ['quick', 'strict'],
+                description: 'Compatibility profile to evaluate (defaults to quick)',
+            },
         },
     },
 };
@@ -53,6 +58,7 @@ export const checkDevelopmentTool: McpTool = {
  */
 export async function executeCheckDevelopment(args: any, _context: ToolExecutionContext): Promise<ToolResult> {
     const directory = args.directory || process.cwd();
+    const profile: 'quick' | 'strict' = args.profile === 'strict' ? 'strict' : 'quick';
     const { getLogs, remove } = installLogCapture();
 
     try {
@@ -268,8 +274,8 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                 }
             }
 
-            // 6. Check for open PRs from working branch - ALWAYS check this
-            if (pkgJson.repository?.url) {
+            // 6. Check for open PRs from working branch (strict profile only)
+            if (profile === 'strict' && pkgJson.repository?.url) {
                 try {
                     const gitStatus = await getGitStatusSummary(pkgDir);
                     const currentBranch = gitStatus.branch;
@@ -328,12 +334,28 @@ export async function executeCheckDevelopment(args: any, _context: ToolExecution
                          checks.remoteSync.passed &&
                          checks.devVersion.passed &&
                          checks.mergeConflicts.passed &&
-                         checks.openPRs.passed;
+                         (profile === 'strict' ? checks.openPRs.passed : true);
 
+        const blockers = [
+            ...checks.branch.issues.map(issue => ({ code: 'BRANCH_STATE', message: issue })),
+            ...checks.remoteSync.issues.map(issue => ({ code: 'REMOTE_BEHIND', message: issue })),
+            ...checks.mergeConflicts.issues.map(issue => ({ code: 'MERGE_CONFLICT_RISK', message: issue })),
+            ...checks.devVersion.issues.map(issue => ({ code: 'NON_DEV_VERSION', message: issue })),
+            ...checks.openPRs.issues.map(issue => ({ code: 'OPEN_PULL_REQUEST', message: issue })),
+        ];
+        const warnings = [
+            ...checks.linkStatus.warnings.map(message => ({ code: 'LINK_RECOMMENDATION', message })),
+            ...checks.mergeConflicts.warnings.map(message => ({ code: 'MERGE_CONFLICT_WARNING', message })),
+            ...checks.openPRs.warnings.map(message => ({ code: 'OPEN_PR_WARNING', message })),
+        ];
         const summary = {
             ready: allPassed,
+            profile,
+            classification: allPassed ? (warnings.length > 0 ? 'warning' : 'ok') : 'blocked',
             isTree,
             packagesChecked: packagesToCheck.length,
+            blockers,
+            warnings,
             checks: {
                 branch: {
                     passed: checks.branch.passed,
