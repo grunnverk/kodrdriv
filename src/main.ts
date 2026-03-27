@@ -4,6 +4,7 @@ import { getLogger, closeLogger } from './logging';
 
 /**
  * Main entry point - minimal wrapper around the application logic
+ * Test commit: verifying tree publish behavior with small change
  */
 async function main(): Promise<void> {
     try {
